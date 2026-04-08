@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eigenvectors — Panda Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a2e;
+  --surface:#16213e;
+  --surface2:#0f3460;
+  --border:#1e3a5f;
+  --border2:#2d5986;
+  --text:#e0e0f0;
+  --muted:#7a8aaa;
+  --dim:#3a4a6a;
+  --accent:#e94560;
+  --green:#00d4aa;
+  --amber:#ffb347;
+  --blue:#4fc3f7;
+  --purple:#ce93d8;
+  --ev1:#00d4aa;
+  --ev2:#ffb347;
+  --serif:'Syne',sans-serif;
+  --mono:'Syne Mono',monospace;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--serif);font-size:13px;display:grid;grid-template-rows:56px 1fr}
+
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;border-bottom:1px solid var(--border);
+  background:var(--surface);flex-shrink:0;
+}
+header h1{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+header h1 span{color:var(--accent)}
+.h-tag{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em}
+
+.layout{display:grid;grid-template-columns:300px 1fr;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;
+}
+
+.sb-sec{padding:16px 18px;border-bottom:1px solid var(--border)}
+.sb-lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+/* matrix presets */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.preset-btn{
+  padding:8px 6px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:7px;color:var(--muted);font-family:var(--serif);font-size:11px;
+  cursor:pointer;transition:all .15s;text-align:center;line-height:1.5;
+}
+.preset-btn:hover{border-color:var(--accent);color:var(--text)}
+.preset-btn.active{background:rgba(233,69,96,.12);border-color:var(--accent);color:var(--accent)}
+
+/* matrix editor */
+.matrix-editor{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:12px;
+}
+.me-row{display:contents}
+.me-input{
+  background:var(--bg);border:1px solid var(--border2);border-radius:5px;
+  padding:7px;color:var(--text);font-family:var(--mono);font-size:14px;
+  text-align:center;outline:none;width:100%;transition:border-color .15s;
+}
+.me-input:focus{border-color:var(--accent)}
+.matrix-brackets{
+  display:flex;align-items:center;justify-content:center;gap:4px;margin-top:8px;
+  font-size:11px;color:var(--muted);font-family:var(--mono);
+}
+
+/* eigen results */
+.eigen-card{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+  padding:12px 14px;margin-bottom:8px;
+}
+.eigen-card:last-child{margin-bottom:0}
+.ec-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ec-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ec-title{font-size:13px;font-weight:600}
+.ec-body{font-family:var(--mono);font-size:12px;color:var(--muted);line-height:2}
+.ec-body span{color:var(--text)}
+.ec-body .hi{font-weight:600}
+
+/* toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
+.toggle-lbl{font-size:12px;color:var(--muted)}
+.toggle{
+  width:34px;height:18px;background:var(--dim);border-radius:9px;
+  cursor:pointer;transition:background .2s;position:relative;border:none;
+  flex-shrink:0;
+}
+.toggle.on{background:var(--accent)}
+.toggle::after{
+  content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;
+  background:#fff;border-radius:50%;transition:transform .2s;
+}
+.toggle.on::after{transform:translateX(16px)}
+
+/* canvas */
+.cplane{position:relative;overflow:hidden;background:var(--bg)}
+canvas{display:block;width:100%;height:100%;cursor:grab}
+.c-overlay{
+  position:absolute;top:14px;right:14px;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end;
+}
+.c-tag{
+  background:rgba(22,33,62,.9);border:1px solid var(--border2);
+  border-radius:5px;padding:3px 9px;font-size:11px;color:var(--muted);
+  font-family:var(--mono);
+}
+.c-tag span{color:var(--text)}
+.zbrow{display:flex;gap:4px}
+.zb{
+  width:28px;height:28px;background:var(--surface);border:1px solid var(--border2);
+  border-radius:5px;color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.zb:hover{border-color:var(--accent);color:var(--accent)}
+
+.no-eigen{
+  font-size:12px;color:var(--muted);font-family:var(--mono);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;padding:12px 14px;line-height:1.8;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Eigen<span>vectors</span></h1>
+  <span class="h-tag">Av = λv — the panda transforms</span>
+</header>
+
+<div class="layout">
+<div class="sidebar">
+
+  <div class="sb-sec">
+    <div class="sb-lbl">Matrix presets</div>
+    <div class="preset-grid" id="presets">
+      <button class="preset-btn active" onclick="loadPreset(0)">Identity<br><small>no stretch</small></button>
+      <button class="preset-btn" onclick="loadPreset(1)">Scale x2<br><small>uniform</small></button>
+      <button class="preset-btn" onclick="loadPreset(2)">Shear<br><small>horizontal</small></button>
+      <button class="preset-btn" onclick="loadPreset(3)">Rotation 45°<br><small>complex λ</small></button>
+      <button class="preset-btn" onclick="loadPreset(4)">Reflection<br><small>y-axis</small></button>
+      <button class="preset-btn" onclick="loadPreset(5)">Stretch<br><small>asymmetric</small></button>
+    </div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-lbl">Matrix A</div>
+    <div class="matrix-editor">
+      <input class="me-input" id="m00" type="number" value="1" step="0.1" oninput="fromInput()">
+      <input class="me-input" id="m01" type="number" value="0" step="0.1" oninput="fromInput()">
+      <input class="me-input" id="m10" type="number" value="0" step="0.1" oninput="fromInput()">
+      <input class="me-input" id="m11" type="number" value="1" step="0.1" oninput="fromInput()">
+    </div>
+    <div class="matrix-brackets">A = [ a b / c d ]</div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-lbl">Eigenvalues & vectors</div>
+    <div id="eigen-out"></div>
+  </div>
+
+  <div class="sb-sec">
+    <div class="sb-lbl">Display</div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Show original panda</span>
+      <button class="toggle on" id="tog-orig" onclick="toggleOpt('orig')"></button>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Show transformed panda</span>
+      <button class="toggle on" id="tog-trans" onclick="toggleOpt('trans')"></button>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Show eigenvectors</span>
+      <button class="toggle on" id="tog-ev" onclick="toggleOpt('ev')"></button>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Show grid lines</span>
+      <button class="toggle on" id="tog-grid" onclick="toggleOpt('grid')"></button>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Show regular vectors</span>
+      <button class="toggle on" id="tog-rvec" onclick="toggleOpt('rvec')"></button>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-lbl">Animate transform</span>
+      <button class="toggle" id="tog-anim" onclick="toggleOpt('anim')"></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="cplane" id="cplane">
+  <canvas id="cv"></canvas>
+  <div class="c-overlay">
+    <div class="zbrow">
+      <button class="zb" onclick="zoom(1.2)">+</button>
+      <button class="zb" onclick="zoom(0.83)">−</button>
+      <button class="zb" onclick="resetView()">⌂</button>
+    </div>
+    <div class="c-tag">x: <span id="mx">0</span>  y: <span id="my">0</span></div>
+  </div>
+</div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const plane = document.getElementById('cplane');
+
+let view = {scale:70, ox:0, oy:0};
+let opts = {orig:true, trans:true, ev:true, grid:true, rvec:true, anim:false};
+let animT = 0, animDir = 1, animRAF = null;
+let isPan=false, panStart=null, viewStart=null;
+let M = [[1,0],[0,1]];
+
+// Regular vectors: {vx, vy, color} — deliberately NOT along eigenvector directions
+const REGULAR_VECS = [
+  {vx:1,   vy:0.4, color:'#e94560'},
+  {vx:0.3, vy:1,   color:'#ce93d8'},
+  {vx:-0.8,vy:0.7, color:'#4fc3f7'},
+  {vx:0.6, vy:-0.9,color:'#f48fb1'},
+];
+
+const PRESETS = [
+  {name:'Identity',    m:[[1,0],[0,1]]},
+  {name:'Scale ×2',   m:[[2,0],[0,2]]},
+  {name:'Shear',      m:[[1,1],[0,1]]},
+  {name:'Rotation',   m:[[Math.cos(Math.PI/4),-Math.sin(Math.PI/4)],[Math.sin(Math.PI/4),Math.cos(Math.PI/4)]]},
+  {name:'Reflection', m:[[-1,0],[0,1]]},
+  {name:'Stretch',    m:[[3,0],[0,0.5]]},
+];
+
+// ── PANDA SHAPE (in grid coords, centered ~0,0, radius ~1.2) ──
+// Built from bezier paths; each sub-array is a list of commands
+function buildPanda() {
+  // returns array of {type, points, fill, stroke, lw}
+  const shapes = [];
+
+  // Body — big white ellipse
+  shapes.push({type:'ellipse', cx:0, cy:-0.1, rx:1.0, ry:1.15, fill:'#f0f0f0', stroke:'#222', lw:0.03});
+  // Head — white circle
+  shapes.push({type:'ellipse', cx:0, cy:1.35, rx:0.75, ry:0.72, fill:'#f0f0f0', stroke:'#222', lw:0.03});
+  // Left ear (black)
+  shapes.push({type:'ellipse', cx:-0.55, cy:1.92, rx:0.28, ry:0.26, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Right ear (black)
+  shapes.push({type:'ellipse', cx:0.55, cy:1.92, rx:0.28, ry:0.26, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Left eye patch (black)
+  shapes.push({type:'ellipse', cx:-0.26, cy:1.45, rx:0.22, ry:0.19, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Right eye patch (black)
+  shapes.push({type:'ellipse', cx:0.26, cy:1.45, rx:0.22, ry:0.19, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Left eye (white)
+  shapes.push({type:'ellipse', cx:-0.26, cy:1.47, rx:0.10, ry:0.09, fill:'#fff', stroke:'none', lw:0});
+  // Right eye (white)
+  shapes.push({type:'ellipse', cx:0.26, cy:1.47, rx:0.10, ry:0.09, fill:'#fff', stroke:'none', lw:0});
+  // Left pupil
+  shapes.push({type:'ellipse', cx:-0.24, cy:1.47, rx:0.055, ry:0.055, fill:'#111', stroke:'none', lw:0});
+  // Right pupil
+  shapes.push({type:'ellipse', cx:0.27, cy:1.47, rx:0.055, ry:0.055, fill:'#111', stroke:'none', lw:0});
+  // Nose
+  shapes.push({type:'ellipse', cx:0, cy:1.22, rx:0.10, ry:0.07, fill:'#444', stroke:'none', lw:0});
+  // Mouth line — simple arc
+  shapes.push({type:'arc-mouth', cx:0, cy:1.18, r:0.10});
+  // Left arm (black)
+  shapes.push({type:'ellipse', cx:-1.0, cy:0.2, rx:0.28, ry:0.55, fill:'#1a1a1a', stroke:'#111', lw:0.02, angle:-0.3});
+  // Right arm (black)
+  shapes.push({type:'ellipse', cx:1.0, cy:0.2, rx:0.28, ry:0.55, fill:'#1a1a1a', stroke:'#111', lw:0.02, angle:0.3});
+  // Left leg (black)
+  shapes.push({type:'ellipse', cx:-0.48, cy:-1.1, rx:0.32, ry:0.45, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Right leg (black)
+  shapes.push({type:'ellipse', cx:0.48, cy:-1.1, rx:0.32, ry:0.45, fill:'#1a1a1a', stroke:'#111', lw:0.02});
+  // Belly patch (slightly darker white)
+  shapes.push({type:'ellipse', cx:0, cy:-0.05, rx:0.55, ry:0.65, fill:'#e8e8e8', stroke:'none', lw:0});
+
+  return shapes;
+}
+
+const PANDA = buildPanda();
+
+function applyMatrix(m, x, y) {
+  return [m[0][0]*x + m[0][1]*y, m[1][0]*x + m[1][1]*y];
+}
+
+function lerp(a, b, t) { return a + (b-a)*t; }
+
+function interpMatrix(m, t) {
+  const I = [[1,0],[0,1]];
+  return [
+    [lerp(I[0][0],m[0][0],t), lerp(I[0][1],m[0][1],t)],
+    [lerp(I[1][0],m[1][0],t), lerp(I[1][1],m[1][1],t)]
+  ];
+}
+
+function toS(gx, gy) { return [view.ox + gx*view.scale, view.oy - gy*view.scale]; }
+function toG(sx, sy) { return [(sx-view.ox)/view.scale, (view.oy-sy)/view.scale]; }
+
+function resetView() {
+  const W=plane.clientWidth, H=plane.clientHeight;
+  view.ox=W/2; view.oy=H/2; view.scale=70;
+  draw();
+}
+function zoom(f) {
+  const W=plane.clientWidth, H=plane.clientHeight;
+  const cx=W/2,cy=H/2;
+  view.ox=cx+(view.ox-cx)*f; view.oy=cy+(view.oy-cy)*f; view.scale*=f;
+  draw();
+}
+
+// ── EIGENVECTOR COMPUTATION ──
+function computeEigen(m) {
+  const a=m[0][0], b=m[0][1], c=m[1][0], d=m[1][1];
+  const tr=a+d, det=a*d-b*c;
+  const disc = tr*tr - 4*det;
+
+  if (disc < -1e-9) {
+    // complex eigenvalues
+    const re = tr/2, im = Math.sqrt(-disc)/2;
+    return {type:'complex', re, im};
+  }
+
+  if (Math.abs(disc) < 1e-9) {
+    // repeated eigenvalue
+    const lam = tr/2;
+    let v = [1,0];
+    if (Math.abs(b) > 1e-9) v = [b, lam-a];
+    else if (Math.abs(c) > 1e-9) v = [lam-d, c];
+    const n = Math.hypot(v[0],v[1]);
+    v = n>1e-9 ? [v[0]/n,v[1]/n] : [1,0];
+    return {type:'repeated', lambdas:[lam], vecs:[v]};
+  }
+
+  const sq = Math.sqrt(disc);
+  const l1=(tr+sq)/2, l2=(tr-sq)/2;
+
+  function eigvec(lam) {
+    // (A - lam*I)v = 0
+    const r0=[a-lam, b], r1=[c, d-lam];
+    let v;
+    if (Math.abs(r0[0])>1e-9 || Math.abs(r0[1])>1e-9) {
+      if (Math.abs(r0[0])>Math.abs(r0[1])) v=[-r0[1], r0[0]];
+      else v=[r0[1], -r0[0]];
+    } else if (Math.abs(r1[0])>1e-9 || Math.abs(r1[1])>1e-9) {
+      if (Math.abs(r1[0])>Math.abs(r1[1])) v=[-r1[1], r1[0]];
+      else v=[r1[1], -r1[0]];
+    } else {
+      v=[1,0];
+    }
+    const n=Math.hypot(v[0],v[1]);
+    return n>1e-9 ? [v[0]/n,v[1]/n] : [1,0];
+  }
+
+  return {type:'real', lambdas:[l1,l2], vecs:[eigvec(l1), eigvec(l2)]};
+}
+
+function fmt(v,d=3){
+  const r=Math.round(v*Math.pow(10,d))/Math.pow(10,d);
+  return r%1===0?String(r):r.toFixed(2);
+}
+
+function updateEigenUI(e) {
+  const out = document.getElementById('eigen-out');
+  if (e.type==='complex') {
+    out.innerHTML = `<div class="no-eigen">
+      Complex eigenvalues:<br>
+      <span style="color:var(--text)">λ = ${fmt(e.re)} ± ${fmt(e.im)}i</span><br>
+      No real eigenvectors.<br>
+      <span style="color:var(--muted)">The panda spins!</span>
+    </div>`;
+    return;
+  }
+  const colors=[getComputedStyle(document.documentElement).getPropertyValue('--ev1').trim(),
+                getComputedStyle(document.documentElement).getPropertyValue('--ev2').trim()];
+  let html='';
+  e.lambdas.forEach((lam,i)=>{
+    const v=e.vecs[i];
+    const c=colors[i]||'#fff';
+    html+=`<div class="eigen-card">
+      <div class="ec-header">
+        <div class="ec-dot" style="background:${c}"></div>
+        <div class="ec-title" style="color:${c}">Eigenvector ${i+1}</div>
+      </div>
+      <div class="ec-body">
+        λ${i+1} = <span class="hi" style="color:${c}">${fmt(lam)}</span><br>
+        v${i+1} = <span>(${fmt(v[0])}, ${fmt(v[1])})</span><br>
+        <span style="color:var(--muted);font-size:11px">Av = ${fmt(lam)}·v — stretches ${lam>0?(lam>1?'away from O':'toward O'):'and flips'}</span>
+      </div>
+    </div>`;
+  });
+  out.innerHTML=html;
+}
+
+// ── DRAW PANDA ──
+function drawPandaWithMatrix(effM, alpha, color_override) {
+  const sc = view.scale;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  for (const sh of PANDA) {
+    ctx.save();
+    if (sh.type === 'ellipse') {
+      // transform center
+      const [cx2,cy2] = applyMatrix(effM, sh.cx, sh.cy);
+      const [scx, scy] = toS(cx2, cy2);
+
+      // For ellipse axes: transform two axis vectors
+      const angle = sh.angle || 0;
+      const ax1g = [sh.rx*Math.cos(angle), sh.rx*Math.sin(angle)];
+      const ax2g = [-sh.ry*Math.sin(angle), sh.ry*Math.cos(angle)];
+      const tax1 = applyMatrix(effM, ax1g[0], ax1g[1]);
+      const tax2 = applyMatrix(effM, ax2g[0], ax2g[1]);
+
+      // Draw transformed ellipse using parametric approach
+      ctx.beginPath();
+      const N=60;
+      for (let k=0;k<=N;k++) {
+        const t=k/N*Math.PI*2;
+        const px=sh.cx+sh.rx*Math.cos(angle)*Math.cos(t)-sh.ry*Math.sin(angle)*Math.sin(t);
+        const py=sh.cy+sh.rx*Math.sin(angle)*Math.cos(t)+sh.ry*Math.cos(angle)*Math.sin(t);
+        const [tx2,ty2]=applyMatrix(effM,px,py);
+        const [ssx,ssy]=toS(tx2,ty2);
+        k===0?ctx.moveTo(ssx,ssy):ctx.lineTo(ssx,ssy);
+      }
+      ctx.closePath();
+      if (sh.fill!=='none') {
+        ctx.fillStyle = color_override || sh.fill;
+        ctx.fill();
+      }
+      if (sh.stroke&&sh.stroke!=='none'&&sh.lw>0) {
+        ctx.strokeStyle = sh.stroke;
+        ctx.lineWidth = sh.lw*sc;
+        ctx.stroke();
+      }
+    } else if (sh.type==='arc-mouth') {
+      ctx.beginPath();
+      const N=24;
+      const mw=sh.r, md=sh.r*0.55;
+      for (let k=0;k<=N;k++) {
+        const t=k/N*Math.PI;
+        const px=sh.cx+mw*Math.cos(Math.PI-t);
+        const py=sh.cy-md*Math.sin(t);
+        const [tx2,ty2]=applyMatrix(effM,px,py);
+        const [ssx,ssy]=toS(tx2,ty2);
+        k===0?ctx.moveTo(ssx,ssy):ctx.lineTo(ssx,ssy);
+      }
+      ctx.strokeStyle='#2a2a2a';
+      ctx.lineWidth=0.028*sc;
+      ctx.lineCap='round';
+      ctx.lineJoin='round';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawArrow(x1,y1,x2,y2,color,lw) {
+  const dx=x2-x1,dy=y2-y1;
+  const len=Math.hypot(dx,dy);
+  if(len<2)return;
+  const ux=dx/len,uy=dy/len;
+  const al=14;
+  ctx.save();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=lw;
+  ctx.setLineDash([]);
+  ctx.shadowColor=color; ctx.shadowBlur=10;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-al*(ux-uy*0.4),y2-al*(uy+ux*0.4));
+  ctx.lineTo(x2-al*(ux+uy*0.4),y2-al*(uy-ux*0.4));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function draw() {
+  const dpr=devicePixelRatio;
+  const W=plane.clientWidth,H=plane.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.scale(dpr,dpr);
+  if(!view.ox){view.ox=W/2;view.oy=H/2;}
+
+  ctx.fillStyle='#1a1a2e';
+  ctx.fillRect(0,0,W,H);
+
+  const sc=view.scale;
+
+  // grid
+  if (opts.grid) {
+    ctx.strokeStyle='rgba(255,255,255,0.04)';
+    ctx.lineWidth=0.5;
+    ctx.setLineDash([]);
+    const sx0=((view.ox%sc)+sc)%sc, sy0=((view.oy%sc)+sc)%sc;
+    for(let x=sx0;x<W;x+=sc){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=sy0;y<H;y+=sc){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  }
+
+  // transformed grid lines
+  if (opts.grid) {
+    const effM = opts.anim ? interpMatrix(M, animT) : M;
+    ctx.strokeStyle='rgba(79,195,247,0.08)';
+    ctx.lineWidth=1;
+    ctx.setLineDash([3,4]);
+    for(let g=-8;g<=8;g++){
+      // vertical grid line x=g transformed
+      const [ax,ay]=toS(...applyMatrix(effM,g,-10));
+      const [bx,by]=toS(...applyMatrix(effM,g,10));
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+      // horizontal
+      const [cx2,cy2]=toS(...applyMatrix(effM,-10,g));
+      const [dx2,dy2]=toS(...applyMatrix(effM,10,g));
+      ctx.beginPath();ctx.moveTo(cx2,cy2);ctx.lineTo(dx2,dy2);ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // axes
+  ctx.strokeStyle='rgba(255,255,255,0.15)';
+  ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(0,view.oy);ctx.lineTo(W,view.oy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(view.ox,0);ctx.lineTo(view.ox,H);ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.font='10px Syne Mono, monospace';
+  const tstep=sc<30?5:sc<60?2:1;
+  ctx.textAlign='center';
+  const gx0=Math.ceil(-view.ox/sc/tstep)*tstep, gx1=Math.floor((W-view.ox)/sc/tstep)*tstep;
+  for(let g=gx0;g<=gx1;g+=tstep){if(g===0)continue;ctx.fillText(g,view.ox+g*sc,view.oy+14);}
+  ctx.textAlign='right';
+  const gy0=Math.ceil((view.oy-H)/sc/tstep)*tstep, gy1=Math.floor(view.oy/sc/tstep)*tstep;
+  for(let g=gy0;g<=gy1;g+=tstep){if(g===0)continue;ctx.fillText(g,view.ox-6,view.oy-g*sc+4);}
+
+  const effM = opts.anim ? interpMatrix(M, animT) : M;
+
+  // original panda
+  if(opts.orig) drawPandaWithMatrix([[1,0],[0,1]], 0.25, null);
+
+  // transformed panda
+  if(opts.trans) drawPandaWithMatrix(effM, 1, null);
+
+  // eigenvectors
+  if(opts.ev) {
+    const e=computeEigen(M);
+    if(e.type!=='complex') {
+      const colors=['#00d4aa','#ffb347'];
+      e.lambdas.forEach((lam,i)=>{
+        const v=e.vecs[i];
+        const col=colors[i];
+        const stretch = Math.abs(lam)*2.5;
+        // draw both directions
+        const [ex1,ey1]=toS(v[0]*stretch, v[1]*stretch);
+        const [ex2,ey2]=toS(-v[0]*stretch,-v[1]*stretch);
+        const [ox2,oy2]=toS(0,0);
+
+        // full line (dashed)
+        ctx.save();
+        ctx.strokeStyle=col+'88'; ctx.lineWidth=1.5;
+        ctx.setLineDash([6,4]);
+        ctx.shadowColor=col; ctx.shadowBlur=6;
+        ctx.beginPath();ctx.moveTo(ex2,ey2);ctx.lineTo(ex1,ey1);ctx.stroke();
+        ctx.restore();
+
+        // arrow in positive direction
+        drawArrow(ox2,oy2,ex1,ey1,col,2.5);
+
+        // lambda label
+        const lx=ex1+(ex1-ox2)*0.15, ly=ey1+(ey1-oy2)*0.15;
+        ctx.save();
+        ctx.fillStyle=col;
+        ctx.font='bold 13px Syne, sans-serif';
+        ctx.shadowColor=col; ctx.shadowBlur=8;
+        ctx.textAlign=ex1>view.ox?'left':'right';
+        ctx.fillText(`λ${i+1}=${fmt(lam)}`, lx+(ex1>view.ox?6:-6), ly);
+        // vector coords
+        ctx.font='11px Syne Mono, monospace';
+        ctx.shadowBlur=4;
+        ctx.fillText(`v=(${fmt(v[0])},${fmt(v[1])})`, lx+(ex1>view.ox?6:-6), ly+16);
+        ctx.restore();
+
+        // show transformed eigenvector (should be λ·v)
+        const tv=applyMatrix(effM,v[0],v[1]);
+        const [tvsx,tvsy]=toS(tv[0],tv[1]);
+        ctx.save();
+        ctx.strokeStyle=col; ctx.lineWidth=1;
+        ctx.setLineDash([2,3]);
+        ctx.globalAlpha=0.5;
+        ctx.beginPath();ctx.moveTo(ox2,oy2);ctx.lineTo(tvsx,tvsy);ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+
+  // regular vectors — show original (faint) + transformed (bright) + angle arc
+  if (opts.rvec) {
+    const [osx,osy] = toS(0,0);
+    REGULAR_VECS.forEach(({vx,vy,color}) => {
+      const scale_v = 2.0; // display length multiplier
+      const ox2 = vx*scale_v, oy2 = vy*scale_v;
+      const [tv0,tv1] = applyMatrix(effM, ox2, oy2);
+
+      const [sx0,sy0] = toS(ox2, oy2);       // original tip (screen)
+      const [sx1,sy1] = toS(tv0, tv1);        // transformed tip (screen)
+
+      // original vector — faint
+      ctx.save();
+      ctx.strokeStyle = color+'55'; ctx.fillStyle = color+'55';
+      ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+      ctx.shadowColor = color; ctx.shadowBlur = 4;
+      ctx.beginPath(); ctx.moveTo(osx,osy); ctx.lineTo(sx0,sy0); ctx.stroke();
+      // small arrowhead
+      const da = Math.atan2(sy0-osy, sx0-osx), al2=10;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(sx0,sy0);
+      ctx.lineTo(sx0-al2*(Math.cos(da-0.4)),sy0-al2*(Math.sin(da-0.4)));
+      ctx.lineTo(sx0-al2*(Math.cos(da+0.4)),sy0-al2*(Math.sin(da+0.4)));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+
+      // transformed vector — bright solid
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color;
+      ctx.lineWidth = 2.5; ctx.setLineDash([]);
+      ctx.shadowColor = color; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.moveTo(osx,osy); ctx.lineTo(sx1,sy1); ctx.stroke();
+      const db = Math.atan2(sy1-osy, sx1-osx), al3=13;
+      ctx.beginPath();
+      ctx.moveTo(sx1,sy1);
+      ctx.lineTo(sx1-al3*(Math.cos(db-0.38)),sy1-al3*(Math.sin(db-0.38)));
+      ctx.lineTo(sx1-al3*(Math.cos(db+0.38)),sy1-al3*(Math.sin(db+0.38)));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+
+      // arc showing angle change between original and transformed
+      const origAngle = Math.atan2(-(oy2), ox2);         // screen: y flipped
+      const transAngle = Math.atan2(-(tv1), tv0);
+      let angleDiff = transAngle - origAngle;
+      // normalise to [-π, π]
+      while(angleDiff >  Math.PI) angleDiff -= 2*Math.PI;
+      while(angleDiff < -Math.PI) angleDiff += 2*Math.PI;
+
+      if (Math.abs(angleDiff) > 0.04) {
+        const arcR = 28;
+        ctx.save();
+        ctx.strokeStyle = color+'99'; ctx.lineWidth = 1.2; ctx.setLineDash([]);
+        ctx.shadowColor = color; ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(osx, osy, arcR, -origAngle, -transAngle, angleDiff < 0);
+        ctx.stroke();
+        // small dot on arc midpoint
+        const midA = -origAngle + (-angleDiff)*0.5;
+        const mx2 = osx + (arcR+10)*Math.cos(midA);
+        const my2 = osy + (arcR+10)*Math.sin(midA);
+        ctx.fillStyle = color;
+        ctx.font = 'bold 10px Syne Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.shadowBlur = 4;
+        const deg = Math.round(Math.abs(angleDiff)*180/Math.PI);
+        ctx.fillText(deg+'°', mx2, my2+4);
+        ctx.restore();
+      }
+
+      // label "v" near original tip
+      ctx.save();
+      ctx.fillStyle = color+'aa';
+      ctx.font = '11px Syne Mono, monospace';
+      ctx.textAlign = ox2 >= 0 ? 'left' : 'right';
+      ctx.fillText(`(${+(ox2).toFixed(1)},${+(oy2).toFixed(1)})`, sx0+(ox2>=0?6:-6), sy0-6);
+      ctx.restore();
+    });
+  }
+
+  // origin dot
+  const [osx,osy]=toS(0,0);
+  ctx.beginPath();ctx.arc(osx,osy,3,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fill();
+}
+
+// ── ANIMATION ──
+function animLoop() {
+  if(!opts.anim){animRAF=null;return;}
+  animT+=0.008*animDir;
+  if(animT>=1){animT=1;animDir=-1;}
+  if(animT<=0){animT=0;animDir=1;}
+  draw();
+  animRAF=requestAnimationFrame(animLoop);
+}
+
+function toggleOpt(key) {
+  opts[key]=!opts[key];
+  document.getElementById('tog-'+key).classList.toggle('on',opts[key]);
+  if(key==='anim'){
+    if(opts.anim){animDir=1;animRAF=requestAnimationFrame(animLoop);}
+    else{if(animRAF)cancelAnimationFrame(animRAF);animRAF=null;animT=0;draw();}
+  } else draw();
+}
+
+// ── MATRIX INPUT ──
+function setMatrix(m) {
+  M=m;
+  document.getElementById('m00').value=+(m[0][0].toFixed(4));
+  document.getElementById('m01').value=+(m[0][1].toFixed(4));
+  document.getElementById('m10').value=+(m[1][0].toFixed(4));
+  document.getElementById('m11').value=+(m[1][1].toFixed(4));
+  const e=computeEigen(M);
+  updateEigenUI(e);
+  draw();
+}
+
+function fromInput() {
+  const a=parseFloat(document.getElementById('m00').value)||0;
+  const b=parseFloat(document.getElementById('m01').value)||0;
+  const c=parseFloat(document.getElementById('m10').value)||0;
+  const d=parseFloat(document.getElementById('m11').value)||0;
+  M=[[a,b],[c,d]];
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  const e=computeEigen(M);
+  updateEigenUI(e);
+  draw();
+}
+
+function loadPreset(i) {
+  document.querySelectorAll('.preset-btn').forEach((b,j)=>b.classList.toggle('active',j===i));
+  setMatrix(PRESETS[i].m);
+}
+
+// ── EVENTS ──
+cv.addEventListener('mousemove',e=>{
+  const r=cv.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  if(isPan&&panStart){
+    view.ox=viewStart.ox+mx-panStart[0];
+    view.oy=viewStart.oy+my-panStart[1];
+    draw(); return;
+  }
+  const [gx,gy]=toG(mx,my);
+  document.getElementById('mx').textContent=(Math.round(gx*100)/100).toFixed(2);
+  document.getElementById('my').textContent=(Math.round(gy*100)/100).toFixed(2);
+});
+cv.addEventListener('mousedown',e=>{
+  if(e.button===0||e.button===1){
+    isPan=true;
+    cv.style.cursor='grabbing';
+    const r=cv.getBoundingClientRect();
+    panStart=[e.clientX-r.left,e.clientY-r.top];
+    viewStart={ox:view.ox,oy:view.oy};
+    e.preventDefault();
+  }
+});
+cv.addEventListener('mouseup',()=>{isPan=false;panStart=null;cv.style.cursor='grab';});
+cv.addEventListener('mouseleave',()=>{isPan=false;panStart=null;cv.style.cursor='grab';});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=cv.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const f=e.deltaY<0?1.12:1/1.12;
+  view.ox=mx+(view.ox-mx)*f;view.oy=my+(view.oy-my)*f;view.scale*=f;
+  draw();
+},{passive:false});
+window.addEventListener('resize',draw);
+
+// init
+setTimeout(()=>{
+  const W=plane.clientWidth,H=plane.clientHeight;
+  view.ox=W/2;view.oy=H/2;
+  setMatrix([[1,0],[0,1]]);
+},60);
+</script>
+</body>
+</html>

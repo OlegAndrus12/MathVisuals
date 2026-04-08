@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Перпендикулярні площини у 3D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --border: #1e2230;
+    --accent: #4ade80;
+    --accent2: #60a5fa;
+    --accent3: #f472b6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --c1: #facc15;
+    --c2: #818cf8;
+    --dot-color: #34d399;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  header span {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  canvas {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    cursor: grab;
+  }
+  canvas:active { cursor: grabbing; }
+
+  .panel {
+    width: 380px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+
+  .plane-block {
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 12px;
+    background: #0d1117;
+  }
+  .plane-block.p1 { border-color: #facc1544; }
+  .plane-block.p2 { border-color: #818cf844; }
+
+  .plane-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .plane-badge {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+  .p1 .plane-badge { background: #facc1518; color: var(--c1); border: 1px solid #facc1544; }
+  .p2 .plane-badge { background: #818cf818; color: var(--c2); border: 1px solid #818cf844; }
+
+  .equation-box {
+    background: #07090e;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    letter-spacing: 0.03em;
+    min-height: 40px;
+    line-height: 1.8;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    word-break: break-word;
+    margin-bottom: 8px;
+  }
+  .p1 .equation-box { color: var(--c1); }
+  .p2 .equation-box { color: var(--c2); }
+  .equation-box .coeff { color: var(--accent2); }
+  .equation-box .var   { color: var(--text); }
+  .equation-box .op    { color: var(--muted); }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+  .info-item {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    min-width: 0;
+  }
+  .info-item .label {
+    font-size: 0.55rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 3px;
+    white-space: nowrap;
+  }
+  .info-item .value {
+    font-size: 0.78rem;
+    color: var(--accent2);
+    white-space: nowrap;
+  }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* Dot product display — the star of the show */
+  .dot-box {
+    background: #0d1117;
+    border: 1px solid #34d39944;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .dot-title {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .dot-formula {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.6;
+  }
+  .dot-formula .n1 { color: var(--c1); }
+  .dot-formula .n2 { color: var(--c2); }
+  .dot-formula .eq { color: var(--muted); }
+  .dot-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    transition: color 0.4s ease;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .dot-value.zero  { color: var(--dot-color); text-shadow: 0 0 20px #34d39966; }
+  .dot-value.nonzero { color: #f87171; }
+
+  .dot-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    transition: color 0.4s;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+  }
+  .dot-status.perp { background: #34d39918; color: var(--dot-color); border: 1px solid #34d39944; }
+  .dot-status.notperp { background: #f8717118; color: #f87171; border: 1px solid #f8717144; }
+
+  /* Angle arc display */
+  .angle-box {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .angle-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; }
+  .angle-value { font-size: 1.1rem; color: #e2e8f0; font-family: 'Cormorant Garamond', serif; }
+
+  /* Normal vector coords */
+  .normal-coords {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .normal-coord {
+    flex: 1;
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 0.75rem;
+  }
+  .normal-coord .cl { font-size: 0.55rem; color: var(--muted); display: block; }
+
+  .slider-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  }
+  .slider-row label { font-size: 0.6rem; color: var(--muted); white-space: nowrap; min-width: 60px; }
+  input[type=range] { flex:1; cursor:pointer; }
+  input.s1 { accent-color: var(--c1); }
+  input.s2 { accent-color: var(--c2); }
+  .slider-val { font-size: 0.75rem; width: 36px; text-align: right; }
+  .s1-val { color: var(--c1); }
+  .s2-val { color: var(--c2); }
+
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-align: center;
+    width: 100%;
+  }
+  .btn:hover { border-color: var(--dot-color); color: var(--dot-color); }
+
+  .hint {
+    font-size: 0.63rem;
+    color: var(--muted);
+    line-height: 1.7;
+    padding: 10px;
+    background: #0d1117;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .status-bar {
+    padding: 6px 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex;
+    gap: 24px;
+    white-space: nowrap;
+  }
+  .status-bar span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Перпендикулярні площини</h1>
+  <span>π₁ ⊥ π₂  ↔  n̄₁ · n̄₂ = 0</span>
+</header>
+
+<div class="layout">
+  <canvas id="canvas"></canvas>
+
+  <div class="panel">
+
+    <!-- Plane 1 -->
+    <div class="plane-block p1">
+      <div class="plane-header">
+        <div class="plane-badge">π₁</div>
+        <span style="font-size:0.63rem;color:var(--muted)">жовта площина</span>
+      </div>
+      <div class="equation-box" id="eq1">—</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">A₁</span><span class="value" id="p1A">—</span></div>
+        <div class="info-item"><span class="label">B₁</span><span class="value" id="p1B">—</span></div>
+        <div class="info-item"><span class="label">C₁</span><span class="value" id="p1C">—</span></div>
+        <div class="info-item"><span class="label">D₁</span><span class="value" id="p1D">—</span></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="section-title">Кут нормалі n̄₁ (від осі X)</div>
+        <div class="slider-row">
+          <label>ϕ₁ =</label>
+          <input type="range" class="s1" id="phi1" min="0" max="360" step="1" value="0">
+          <span class="slider-val s1-val" id="phi1Val">0°</span>
+        </div>
+        <div class="slider-row">
+          <label>θ₁ =</label>
+          <input type="range" class="s1" id="theta1" min="-90" max="90" step="1" value="0">
+          <span class="slider-val s1-val" id="theta1Val">0°</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plane 2 -->
+    <div class="plane-block p2">
+      <div class="plane-header">
+        <div class="plane-badge">π₂</div>
+        <span style="font-size:0.63rem;color:var(--muted)">фіолетова площина</span>
+      </div>
+      <div class="equation-box" id="eq2">—</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="label">A₂</span><span class="value" id="p2A">—</span></div>
+        <div class="info-item"><span class="label">B₂</span><span class="value" id="p2B">—</span></div>
+        <div class="info-item"><span class="label">C₂</span><span class="value" id="p2C">—</span></div>
+        <div class="info-item"><span class="label">D₂</span><span class="value" id="p2D">—</span></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="section-title">Кут нормалі n̄₂ (від осі X)</div>
+        <div class="slider-row">
+          <label>ϕ₂ =</label>
+          <input type="range" class="s2" id="phi2" min="0" max="360" step="1" value="90">
+          <span class="slider-val s2-val" id="phi2Val">90°</span>
+        </div>
+        <div class="slider-row">
+          <label>θ₂ =</label>
+          <input type="range" class="s2" id="theta2" min="-90" max="90" step="1" value="0">
+          <span class="slider-val s2-val" id="theta2Val">0°</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Dot product — main visualization -->
+    <div class="dot-box">
+      <div class="dot-title">Скалярний добуток нормалей</div>
+      <div class="dot-formula">
+        <span class="n1">n̄₁</span> · <span class="n2">n̄₂</span>
+        <span class="eq"> = A₁A₂ + B₁B₂ + C₁C₂</span>
+      </div>
+      <div class="dot-value zero" id="dotValue">0</div>
+      <div class="dot-status perp" id="dotStatus">⊥ ПЕРПЕНДИКУЛЯРНІ</div>
+    </div>
+
+    <!-- Angle -->
+    <div class="angle-box">
+      <span class="angle-label">КУТ МІЖ НОРМАЛЯМИ</span>
+      <span class="angle-value" id="angleVal">90.00°</span>
+    </div>
+
+    <!-- Snap button -->
+    <button class="btn" onclick="snapPerpendicular()">↗ ЗРОБИТИ ПЕРПЕНДИКУЛЯРНИМИ</button>
+
+    <div class="hint">
+      <strong style="color:var(--text)">Умова перпендикулярності:</strong><br>
+      π₁ ⊥ π₂  ↔  <span style="color:var(--c1)">n̄₁</span> · <span style="color:var(--c2)">n̄₂</span> = A₁A₂ + B₁B₂ + C₁C₂ = <span style="color:var(--dot-color)">0</span><br><br>
+      Крутіть слайдери — спостерігайте як змінюється кут. Жовтий кут на сцені показує 90° між нормалями.
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>Камера: ϕ=<span id="sPhi">—</span> θ=<span id="sTheta">—</span></div>
+  <div>Zoom: <span id="sZoom">1.0</span>×</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let camPhi = 0.7, camTheta = 0.45, zoom = 1.0;
+let dragging = false, lastX, lastY;
+
+// Normal vector angles (spherical coords)
+let n1Phi = 0, n1Theta = 0;     // plane1 normal direction
+let n2Phi = Math.PI/2, n2Theta = 0; // plane2 normal direction
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  draw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Projection ─────────────────────────────────────────────────────────────
+function project(x, y, z) {
+  const cosP = Math.cos(camPhi), sinP = Math.sin(camPhi);
+  const cosT = Math.cos(camTheta), sinT = Math.sin(camTheta);
+  const rx = x*cosP - y*sinP;
+  const ry = x*sinP + y*cosP;
+  const ex = rx;
+  const ey = ry*cosT - z*sinT;
+  const ez = ry*sinT + z*cosT;
+  const s = zoom * Math.min(W,H) * 0.12;
+  return [W/2 + ex*s, H/2 - ez*s];
+}
+
+// ─── Math ────────────────────────────────────────────────────────────────────
+function sphericalToVec(phi, theta) {
+  // phi = azimuth, theta = elevation
+  return [
+    Math.cos(theta)*Math.cos(phi),
+    Math.cos(theta)*Math.sin(phi),
+    Math.sin(theta)
+  ];
+}
+function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function vlen(v) { return Math.sqrt(v[0]**2+v[1]**2+v[2]**2); }
+function norm(v) { const l=vlen(v); return l<1e-10?[1,0,0]:v.map(x=>x/l); }
+function cross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
+function add(a,b) { return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+function scale(v,s) { return [v[0]*s,v[1]*s,v[2]*s]; }
+function sub(a,b) { return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+
+function planeFromNormal(n, center) {
+  const A=n[0], B=n[1], C=n[2];
+  const D = -(A*center[0]+B*center[1]+C*center[2]);
+  return {A,B,C,D,normal:n,center};
+}
+
+// ─── Draw helpers ────────────────────────────────────────────────────────────
+function drawLine3D(x1,y1,z1,x2,y2,z2, color, width=1, dash=[]) {
+  const [px1,py1]=project(x1,y1,z1), [px2,py2]=project(x2,y2,z2);
+  ctx.beginPath(); ctx.setLineDash(dash);
+  ctx.strokeStyle=color; ctx.lineWidth=width;
+  ctx.moveTo(px1,py1); ctx.lineTo(px2,py2); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawArrow3D(p1, p2, color, width=2.5) {
+  const [px1,py1]=project(...p1), [px2,py2]=project(...p2);
+  ctx.beginPath();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width;
+  ctx.moveTo(px1,py1); ctx.lineTo(px2,py2); ctx.stroke();
+  const angle=Math.atan2(py2-py1,px2-px1), s=11;
+  ctx.beginPath();
+  ctx.moveTo(px2,py2);
+  ctx.lineTo(px2-s*Math.cos(angle-0.38),py2-s*Math.sin(angle-0.38));
+  ctx.lineTo(px2-s*Math.cos(angle+0.38),py2-s*Math.sin(angle+0.38));
+  ctx.closePath(); ctx.fill();
+}
+
+function drawText3D(x,y,z,text,color,font='12px JetBrains Mono,monospace') {
+  const [px,py]=project(x,y,z);
+  ctx.font=font; ctx.fillStyle=color;
+  ctx.fillText(text,px,py);
+}
+
+function drawPoint3D(x,y,z,color,r=4) {
+  const [px,py]=project(x,y,z);
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+function drawGrid() {
+  for(let i=-5;i<=5;i++) {
+    drawLine3D(i,-5,0,i,5,0,'#1a1e2a',1);
+    drawLine3D(-5,i,0,5,i,0,'#1a1e2a',1);
+  }
+}
+
+function drawAxes() {
+  const L=4;
+  drawArrow3D([-L,0,0],[L,0,0],'#ef444466',1);
+  drawArrow3D([0,-L,0],[0,L,0],'#4ade8066',1);
+  drawArrow3D([0,0,-L],[0,0,L],'#60a5fa66',1);
+  drawText3D(L+0.2,0,0,'x','#ef444488');
+  drawText3D(0,L+0.2,0,'y','#4ade8088');
+  drawText3D(0,0,L+0.2,'z','#60a5fa88');
+}
+
+function drawPlaneQuad(center, normal, fillColor, strokeColor) {
+  const n = norm(normal);
+  let t1 = [1,0,0];
+  if (Math.abs(dot(n,t1))>0.9) t1=[0,1,0];
+  const t2n=cross(n,t1);
+  t1=norm(cross(t2n,n));
+  const t2=norm(t2n);
+  const sz=3.2;
+  const corners=[
+    add(add(center,scale(t1,-sz)),scale(t2,-sz)),
+    add(add(center,scale(t1, sz)),scale(t2,-sz)),
+    add(add(center,scale(t1, sz)),scale(t2, sz)),
+    add(add(center,scale(t1,-sz)),scale(t2, sz)),
+  ];
+  const proj=corners.map(p=>project(...p));
+  ctx.beginPath();
+  ctx.moveTo(proj[0][0],proj[0][1]);
+  for(let i=1;i<4;i++) ctx.lineTo(proj[i][0],proj[i][1]);
+  ctx.closePath();
+  ctx.fillStyle=fillColor; ctx.fill();
+  ctx.strokeStyle=strokeColor; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+// Draw a right-angle marker at 'vertex' in the plane of vectors a and b
+function drawRightAngleMarker(vertex, a, b, color, size=0.35) {
+  const na=norm(a), nb=norm(b);
+  const p1=add(vertex,scale(na,size));
+  const p2=add(add(vertex,scale(na,size)),scale(nb,size));
+  const p3=add(vertex,scale(nb,size));
+  drawLine3D(...p1,...p2,color,2);
+  drawLine3D(...p2,...p3,color,2);
+}
+
+// Draw arc between two vectors at vertex
+function drawAngleArc(vertex, a, b, color, radius=0.7, steps=32) {
+  const na=norm(a), nb=norm(b);
+  const points=[];
+  for(let i=0;i<=steps;i++) {
+    const t=i/steps;
+    // slerp-like: lerp then normalize
+    const v=[
+      na[0]*(1-t)+nb[0]*t,
+      na[1]*(1-t)+nb[1]*t,
+      na[2]*(1-t)+nb[2]*t,
+    ];
+    const vn=norm(v);
+    points.push(add(vertex,scale(vn,radius)));
+  }
+  if(points.length<2) return;
+  const [px0,py0]=project(...points[0]);
+  ctx.beginPath();
+  ctx.moveTo(px0,py0);
+  for(let i=1;i<points.length;i++) {
+    const [px,py]=project(...points[i]);
+    ctx.lineTo(px,py);
+  }
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.stroke();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0c10'; ctx.fillRect(0,0,W,H);
+
+  drawGrid();
+  drawAxes();
+
+  const n1=sphericalToVec(n1Phi,n1Theta);
+  const n2=sphericalToVec(n2Phi,n2Theta);
+
+  const c1=[0,0,0];   // plane1 passes through origin
+  const c2=[0,0,0];   // plane2 also through origin (intersection line visible)
+
+  // Draw planes
+  drawPlaneQuad(c1, n1, 'rgba(250,204,21,0.08)',  'rgba(250,204,21,0.45)');
+  drawPlaneQuad(c2, n2, 'rgba(129,140,248,0.08)', 'rgba(129,140,248,0.45)');
+
+  // Draw intersection line (cross product of normals)
+  const intDir = norm(cross(n1,n2));
+  const intLen = 3.5;
+  if(vlen(cross(n1,n2))>0.01) {
+    drawLine3D(
+      ...scale(intDir,-intLen),
+      ...scale(intDir, intLen),
+      'rgba(52,211,153,0.5)', 1.5, [6,4]
+    );
+    drawText3D(...add(scale(intDir,intLen),[0.1,0.1,0.1]),'l','#34d39977','italic 13px Cormorant Garamond,serif');
+  }
+
+  // Normal vectors
+  const nLen=2.6;
+  drawArrow3D(c1, add(c1,scale(n1,nLen)), '#facc15', 3);
+  drawArrow3D(c2, add(c2,scale(n2,nLen)), '#818cf8', 3);
+
+  // Labels
+  drawText3D(...add(add(c1,scale(n1,nLen)),[0.1,0.1,0.15]), 'n̄₁', '#facc15', 'bold 14px Cormorant Garamond,serif');
+  drawText3D(...add(add(c2,scale(n2,nLen)),[0.1,0.1,0.15]), 'n̄₂', '#818cf8', 'bold 14px Cormorant Garamond,serif');
+
+  // Angle visualization between normals
+  const dp = dot(n1,n2);
+  const angle = Math.acos(Math.max(-1,Math.min(1,Math.abs(dp))));
+  const isPerp = Math.abs(dp) < 0.015;
+
+  if (isPerp) {
+    // Right angle marker
+    drawRightAngleMarker([0,0,0], n1, n2, '#34d399', 0.4);
+    // Glow dot at origin
+    drawGlowDot(0,0,0,'#34d399');
+  } else {
+    // Arc showing angle
+    const arcColor = `rgba(${lerpColor(dp)})`;
+    drawAngleArc([0,0,0], n1, n2, arcColor, 0.75);
+    // angle label at midpoint of arc
+    const mid=norm(add(n1,n2));
+    drawText3D(...add(scale(mid,0.95),[0.05,0.05,0.05]),
+      angleLabel(angle), '#e2e8f0aa', '11px JetBrains Mono,monospace');
+  }
+
+  // Update UI
+  updateUI(n1,n2,dp,angle);
+
+  document.getElementById('sPhi').textContent=(camPhi*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sTheta').textContent=(camTheta*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sZoom').textContent=zoom.toFixed(2);
+}
+
+function lerpColor(dp) {
+  // dp near 0 → green, far → red
+  const t=Math.min(1,Math.abs(dp)*2);
+  const r=Math.round(52+t*(248-52));
+  const g=Math.round(211+t*(113-211));
+  const b=Math.round(153+t*(114-153));
+  return `${r},${g},${b},0.9`;
+}
+
+function angleLabel(a) {
+  return (a*180/Math.PI).toFixed(1)+'°';
+}
+
+function drawGlowDot(x,y,z,color) {
+  const [px,py]=project(x,y,z);
+  // outer glow
+  const grad=ctx.createRadialGradient(px,py,0,px,py,18);
+  grad.addColorStop(0,color+'88');
+  grad.addColorStop(1,color+'00');
+  ctx.beginPath(); ctx.arc(px,py,18,0,Math.PI*2);
+  ctx.fillStyle=grad; ctx.fill();
+  // core
+  ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+// ─── UI ─────────────────────────────────────────────────────────────────────
+function fmtEq(A,B,C,D) {
+  const f=v=>parseFloat(v.toFixed(2));
+  const a=f(A),b=f(B),c=f(C),d=f(D);
+  function term(coeff,varname,first) {
+    if(coeff===0) return '';
+    const sign=first?(coeff<0?'−':''):(coeff>0?' + ':' − ');
+    const abs=Math.abs(coeff), num=abs===1?'':abs;
+    return `${sign}<span class="coeff">${num}</span><span class="var">${varname}</span>`;
+  }
+  let eq='',first=true;
+  if(a!==0){eq+=term(a,'x',first);first=false;}
+  if(b!==0){eq+=term(b,'y',first);first=false;}
+  if(c!==0){eq+=term(c,'z',first);first=false;}
+  if(d!==0){
+    const ds=first?'':(d>0?' + ':' − ');
+    eq+=`${ds}<span class="coeff">${Math.abs(d).toFixed(2)}</span>`;
+  }
+  if(!eq) eq='<span class="coeff">0</span>';
+  eq+=' <span class="op">=</span> <span class="coeff">0</span>';
+  return eq;
+}
+
+function updateUI(n1,n2,dp,angle) {
+  const f=v=>v.toFixed(3);
+  // plane equations (both pass through origin, D=0)
+  document.getElementById('eq1').innerHTML=fmtEq(n1[0],n1[1],n1[2],0);
+  document.getElementById('eq2').innerHTML=fmtEq(n2[0],n2[1],n2[2],0);
+  document.getElementById('p1A').textContent=f(n1[0]);
+  document.getElementById('p1B').textContent=f(n1[1]);
+  document.getElementById('p1C').textContent=f(n1[2]);
+  document.getElementById('p1D').textContent='0';
+  document.getElementById('p2A').textContent=f(n2[0]);
+  document.getElementById('p2B').textContent=f(n2[1]);
+  document.getElementById('p2C').textContent=f(n2[2]);
+  document.getElementById('p2D').textContent='0';
+
+  const dpEl=document.getElementById('dotValue');
+  const stEl=document.getElementById('dotStatus');
+  const isPerp=Math.abs(dp)<0.015;
+  dpEl.textContent=dp.toFixed(4);
+  dpEl.className='dot-value '+(isPerp?'zero':'nonzero');
+  stEl.textContent=isPerp?'⊥ ПЕРПЕНДИКУЛЯРНІ':'∦ НЕ ПЕРПЕНДИКУЛЯРНІ';
+  stEl.className='dot-status '+(isPerp?'perp':'notperp');
+
+  document.getElementById('angleVal').textContent=(angle*180/Math.PI).toFixed(2)+'°';
+}
+
+// ─── Sliders ─────────────────────────────────────────────────────────────────
+function bindSlider(id, valId, onchange) {
+  const sl=document.getElementById(id);
+  const vl=document.getElementById(valId);
+  sl.addEventListener('input',()=>{
+    vl.textContent=sl.value+'°';
+    onchange(parseFloat(sl.value)*Math.PI/180);
+    draw();
+  });
+}
+
+bindSlider('phi1','phi1Val', v=>{ n1Phi=v; });
+bindSlider('theta1','theta1Val', v=>{ n1Theta=v; });
+bindSlider('phi2','phi2Val', v=>{ n2Phi=v; });
+bindSlider('theta2','theta2Val', v=>{ n2Theta=v; });
+
+function snapPerpendicular() {
+  // Keep n1, make n2 perpendicular by projecting out n1 component
+  // Pick a candidate vector and orthogonalize
+  const n1=sphericalToVec(n1Phi,n1Theta);
+  let candidate=[0,0,1];
+  if(Math.abs(dot(norm(n1),candidate))>0.95) candidate=[0,1,0];
+  // Gram-Schmidt
+  const d=dot(candidate,norm(n1));
+  const perp=norm(sub(candidate,scale(norm(n1),d)));
+  // Convert back to spherical
+  n2Phi  = Math.atan2(perp[1],perp[0]);
+  n2Theta= Math.asin(Math.max(-1,Math.min(1,perp[2])));
+  // Update sliders
+  document.getElementById('phi2').value=(n2Phi*180/Math.PI+360)%360;
+  document.getElementById('phi2Val').textContent=((n2Phi*180/Math.PI+360)%360).toFixed(0)+'°';
+  document.getElementById('theta2').value=(n2Theta*180/Math.PI).toFixed(0);
+  document.getElementById('theta2Val').textContent=(n2Theta*180/Math.PI).toFixed(0)+'°';
+  draw();
+}
+
+// ─── Camera mouse ─────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  camPhi+=(e.clientX-lastX)*0.01;
+  camTheta+=(e.clientY-lastY)*0.01;
+  camTheta=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,camTheta));
+  lastX=e.clientX; lastY=e.clientY;
+  draw();
+});
+canvas.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('mouseleave',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom*=e.deltaY>0?0.92:1.08;
+  zoom=Math.max(0.2,Math.min(5,zoom));
+  draw();
+},{passive:false});
+
+draw();
+</script>
+</body>
+</html>

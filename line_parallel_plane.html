@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пряма паралельна до площини</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --border: #1e2230;
+    --accent: #4ade80;
+    --accent2: #60a5fa;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --n-color: #facc15;
+    --a-color: #60a5fa;
+    --line-color: #4ade80;
+    --plane-color: #4ade80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  header .sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  canvas { flex:1; min-width:0; display:block; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+
+  .panel {
+    width: 380px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+
+  /* Big condition box */
+  .condition-box {
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.4s, background 0.4s;
+    border: 2px solid;
+  }
+  .condition-box.ok   { border-color: #4ade8066; background: #4ade8008; }
+  .condition-box.fail { border-color: #f8717166; background: #f8717108; }
+
+  .cond-formula {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+  .cond-formula .ca { color: var(--accent2); }
+  .cond-formula .cn { color: var(--n-color); }
+  .cond-formula .cv { color: var(--a-color); }
+
+  .dot-result {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 6px;
+    transition: color 0.4s;
+  }
+  .dot-result.zero    { color: #4ade80; text-shadow: 0 0 20px #4ade8055; }
+  .dot-result.nonzero { color: #f87171; }
+
+  .cond-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    padding: 3px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    transition: all 0.4s;
+  }
+  .cond-status.ok   { background: #4ade8018; color: #4ade80; border: 1px solid #4ade8044; }
+  .cond-status.fail { background: #f8717118; color: #f87171; border: 1px solid #f8717144; }
+
+  .block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .slider-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .slider-row label { font-size: 0.65rem; color: var(--muted); white-space: nowrap; width: 24px; text-align: right; }
+  input[type=range] { flex:1; cursor:pointer; }
+  input.cn { accent-color: var(--n-color); }
+  input.ca { accent-color: var(--a-color); }
+  .sv { font-size: 0.78rem; width: 38px; text-align: right; }
+  .sv.cn { color: var(--n-color); }
+  .sv.ca { color: var(--a-color); }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    margin-left: 4px;
+  }
+  .bn { background: #facc1518; color: var(--n-color); border: 1px solid #facc1544; }
+  .ba { background: #60a5fa18; color: var(--a-color); border: 1px solid #60a5fa44; }
+
+  .info-row {
+    display: flex; gap: 6px; margin-top: 8px;
+  }
+  .info-item {
+    flex: 1;
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 8px;
+    text-align: center;
+  }
+  .info-item .lbl { font-size: 0.55rem; color: var(--muted); display: block; margin-bottom: 2px; }
+  .info-item .val { font-size: 0.8rem; }
+
+  .snap-btn {
+    background: none;
+    border: 1px solid #4ade8044;
+    color: #4ade80;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .snap-btn:hover { background: #4ade8018; }
+
+  .divider { height: 1px; background: var(--border); }
+
+  .hint {
+    font-size: 0.63rem;
+    color: var(--muted);
+    line-height: 1.7;
+    padding: 10px;
+    background: #0d1117;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .status-bar {
+    padding: 6px 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex; gap: 24px; white-space: nowrap;
+  }
+  .status-bar span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Пряма L паралельна площині π</h1>
+  <span class="sub">умова: ā · n̄ = Am + Bn + Cp = 0</span>
+</header>
+
+<div class="layout">
+  <canvas id="canvas"></canvas>
+
+  <div class="panel">
+
+    <!-- Condition display -->
+    <div>
+      <div class="section-title">Умова паралельності</div>
+      <div class="condition-box ok" id="condBox">
+        <div class="cond-formula">
+          <span class="ca">A</span>·m + <span class="ca">B</span>·n + <span class="ca">C</span>·p
+          = <span class="cn">n̄</span>·<span class="cv">ā</span>
+        </div>
+        <div class="dot-result zero" id="dotResult">0.000</div>
+        <div class="cond-status ok" id="condStatus">∥ ПАРАЛЕЛЬНІ</div>
+      </div>
+    </div>
+
+    <!-- Plane normal -->
+    <div class="block">
+      <div class="section-title">Нормаль площини n̄(A,B,C) <span class="badge bn">жовта</span></div>
+      <div class="slider-row">
+        <label>A</label>
+        <input type="range" class="cn" id="nA" min="-4" max="4" step="0.1" value="0">
+        <span class="sv cn" id="nAv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>B</label>
+        <input type="range" class="cn" id="nB" min="-4" max="4" step="0.1" value="0">
+        <span class="sv cn" id="nBv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>C</label>
+        <input type="range" class="cn" id="nC" min="-4" max="4" step="0.1" value="1">
+        <span class="sv cn" id="nCv">1.0</span>
+      </div>
+    </div>
+
+    <!-- Line direction -->
+    <div class="block">
+      <div class="section-title">Напрямний вектор ā(m,n,p) <span class="badge ba">синій</span></div>
+      <div class="slider-row">
+        <label>m</label>
+        <input type="range" class="ca" id="am" min="-4" max="4" step="0.1" value="1">
+        <span class="sv ca" id="amv">1.0</span>
+      </div>
+      <div class="slider-row">
+        <label>n</label>
+        <input type="range" class="ca" id="an" min="-4" max="4" step="0.1" value="1">
+        <span class="sv ca" id="anv">1.0</span>
+      </div>
+      <div class="slider-row">
+        <label>p</label>
+        <input type="range" class="ca" id="ap" min="-4" max="4" step="0.1" value="0">
+        <span class="sv ca" id="apv">0.0</span>
+      </div>
+      <div class="info-row">
+        <div class="info-item">
+          <span class="lbl">Am</span>
+          <span class="val" id="termAm" style="color:var(--accent2)">—</span>
+        </div>
+        <div class="info-item">
+          <span class="lbl">Bn</span>
+          <span class="val" id="termBn" style="color:var(--accent2)">—</span>
+        </div>
+        <div class="info-item">
+          <span class="lbl">Cp</span>
+          <span class="val" id="termCp" style="color:var(--accent2)">—</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="snap-btn" onclick="snapParallel()">↗ ЗРОБИТИ ПАРАЛЕЛЬНИМИ</button>
+
+    <div class="divider"></div>
+
+    <div class="hint">
+      <strong style="color:var(--text)">Чому Am + Bn + Cp = 0?</strong><br>
+      <span style="color:var(--n-color)">n̄</span> перпендикулярна до площини.<br>
+      <span style="color:var(--a-color)">ā</span> вздовж прямої L.<br><br>
+      Якщо L ∥ π — пряма «лежить збоку» від площини, ніколи не перетинаючи її. Це означає що ā перпендикулярна до n̄, тобто їх скалярний добуток = 0.<br><br>
+      Крутіть слайдери — коли значення ≠ 0, пряма <em>перетинає</em> площину.
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>ϕ=<span id="sPhi">—</span> θ=<span id="sTheta">—</span></div>
+  <div>Zoom: <span id="sZoom">1.0</span>×</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let camPhi = 0.65, camTheta = 0.38, zoom = 1.0;
+let dragging = false, lastX, lastY;
+
+let nVec = [0, 0, 1];   // plane normal
+let aVec = [1, 1, 0];   // line direction
+const planeCenter = [0, 0, 0];
+const lineOrigin  = [0, 0, 1.8]; // line floats above plane
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  draw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Projection ──────────────────────────────────────────────────────────────
+function project(x,y,z) {
+  const cosP=Math.cos(camPhi), sinP=Math.sin(camPhi);
+  const cosT=Math.cos(camTheta), sinT=Math.sin(camTheta);
+  const rx=x*cosP-y*sinP, ry=x*sinP+y*cosP;
+  const s=zoom*Math.min(W,H)*0.115;
+  return [W/2 + rx*s, H/2 - (ry*sinT + z*cosT)*s];  // wait, redo
+}
+
+// correct projection
+function proj(x,y,z) {
+  const cosP=Math.cos(camPhi), sinP=Math.sin(camPhi);
+  const cosT=Math.cos(camTheta), sinT=Math.sin(camTheta);
+  const rx = x*cosP - y*sinP;
+  const ry = x*sinP + y*cosP;
+  const ex = rx;
+  const ey = ry*cosT - z*sinT;
+  const ez = ry*sinT + z*cosT;
+  const s = zoom*Math.min(W,H)*0.115;
+  return [W/2 + ex*s, H/2 - ez*s];
+}
+
+// ─── Math ────────────────────────────────────────────────────────────────────
+function vdot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+function vlen(v) { return Math.sqrt(v[0]**2+v[1]**2+v[2]**2); }
+function vnorm(v) { const l=vlen(v); return l<1e-10?[1,0,0]:v.map(x=>x/l); }
+function vadd(a,b) { return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+function vsub(a,b) { return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+function vscale(v,s) { return [v[0]*s,v[1]*s,v[2]*s]; }
+function vcross(a,b) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
+
+// ─── Draw ─────────────────────────────────────────────────────────────────────
+function line3D(p1,p2,color,w=1,dash=[]) {
+  const [x1,y1]=proj(...p1), [x2,y2]=proj(...p2);
+  ctx.beginPath(); ctx.setLineDash(dash);
+  ctx.strokeStyle=color; ctx.lineWidth=w;
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function arrow3D(p1,p2,color,w=2.5,hs=11) {
+  const [x1,y1]=proj(...p1), [x2,y2]=proj(...p2);
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=w;
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*Math.cos(a-0.38),y2-hs*Math.sin(a-0.38));
+  ctx.lineTo(x2-hs*Math.cos(a+0.38),y2-hs*Math.sin(a+0.38));
+  ctx.closePath(); ctx.fill();
+}
+
+function text3D(p,txt,color,font='12px JetBrains Mono,monospace') {
+  const [px,py]=proj(...p);
+  ctx.font=font; ctx.fillStyle=color; ctx.fillText(txt,px,py);
+}
+
+function dot3D(p,color,r=5) {
+  const [px,py]=proj(...p);
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+function drawGrid() {
+  for(let i=-5;i<=5;i++) {
+    line3D([i,-5,0],[i,5,0],'#161a24');
+    line3D([-5,i,0],[5,i,0],'#161a24');
+  }
+}
+
+function drawAxes() {
+  const L=4.5;
+  arrow3D([-L,0,0],[L,0,0],'#ef444455',1.5);
+  arrow3D([0,-L,0],[0,L,0],'#4ade8055',1.5);
+  arrow3D([0,0,-L],[0,0,L],'#60a5fa55',1.5);
+  text3D([L+0.2,0,0],'x','#ef4444aa');
+  text3D([0,L+0.2,0],'y','#4ade80aa');
+  text3D([0,0,L+0.2],'z','#60a5faaa');
+}
+
+function drawPlane(normal, center, isParallel) {
+  const n = vnorm(normal);
+  let t1=[1,0,0];
+  if(Math.abs(vdot(n,t1))>0.9) t1=[0,1,0];
+  const t2n=vcross(n,t1);
+  t1=vnorm(vcross(t2n,n));
+  const t2=vnorm(t2n);
+  const sz=4;
+  const corners=[
+    vadd(vadd(center,vscale(t1,-sz)),vscale(t2,-sz)),
+    vadd(vadd(center,vscale(t1, sz)),vscale(t2,-sz)),
+    vadd(vadd(center,vscale(t1, sz)),vscale(t2, sz)),
+    vadd(vadd(center,vscale(t1,-sz)),vscale(t2, sz)),
+  ];
+  const pp=corners.map(c=>proj(...c));
+  ctx.beginPath();
+  ctx.moveTo(pp[0][0],pp[0][1]);
+  for(let i=1;i<4;i++) ctx.lineTo(pp[i][0],pp[i][1]);
+  ctx.closePath();
+  const fillA = isParallel ? 'rgba(74,222,128,0.10)' : 'rgba(248,113,113,0.10)';
+  const strokeA = isParallel ? 'rgba(74,222,128,0.45)' : 'rgba(248,113,113,0.45)';
+  ctx.fillStyle=fillA; ctx.fill();
+  ctx.strokeStyle=strokeA; ctx.lineWidth=1.5; ctx.stroke();
+  // label
+  text3D(vadd(corners[1],[0.2,0,0.1]),'π', isParallel?'#4ade8099':'#f8717199',
+    'italic 15px Cormorant Garamond,serif');
+}
+
+function drawRightAngleMarker(vertex, a, b, color, size=0.35) {
+  const na=vnorm(a), nb=vnorm(b);
+  const p1=vadd(vertex,vscale(na,size));
+  const p2=vadd(vadd(vertex,vscale(na,size)),vscale(nb,size));
+  const p3=vadd(vertex,vscale(nb,size));
+  line3D(p1,p2,color,2);
+  line3D(p2,p3,color,2);
+}
+
+// Angle arc between two vectors at a vertex
+function drawArc(vertex, a, b, color, r=0.6) {
+  const na=vnorm(a), nb=vnorm(b);
+  const pts=[];
+  for(let i=0;i<=24;i++) {
+    const t=i/24;
+    const v=vnorm([na[0]*(1-t)+nb[0]*t, na[1]*(1-t)+nb[1]*t, na[2]*(1-t)+nb[2]*t]);
+    pts.push(vadd(vertex,vscale(v,r)));
+  }
+  const [px0,py0]=proj(...pts[0]);
+  ctx.beginPath(); ctx.moveTo(px0,py0);
+  for(let i=1;i<pts.length;i++){const[px,py]=proj(...pts[i]);ctx.lineTo(px,py);}
+  ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0c10'; ctx.fillRect(0,0,W,H);
+
+  drawGrid();
+  drawAxes();
+
+  const dp = vdot(nVec, aVec);
+  const isParallel = Math.abs(dp) < 0.015;
+
+  // ── Plane ──
+  drawPlane(nVec, planeCenter, isParallel);
+
+  // ── Normal vector n̄ from plane center ──
+  const nn = vnorm(nVec);
+  const nTip = vadd(planeCenter, vscale(nn, 2.5));
+  arrow3D(planeCenter, nTip, '#facc15', 3);
+  text3D(vadd(nTip,[0.1,0.1,0.12]),'n̄','#facc15','bold 15px Cormorant Garamond,serif');
+
+  // ── Line direction vector origin (float above or on plane) ──
+  // Place line origin offset from plane center along a tangent
+  const lt1 = vnorm(vcross(nn, [0,1,0].some((_,i)=>Math.abs(nn[i])<0.9)?[0,1,0]:[1,0,0]));
+  const lineOrig = vadd(planeCenter, vscale(lt1, -1.5));
+  // push line to sit above/on the plane
+  const planeOffset = isParallel ? 1.5 : 0.0;
+  const lO = vadd(lineOrig, vscale(nn, planeOffset));
+
+  // Draw the line
+  const aNorm = vnorm(aVec);
+  const lineLen = 3.8;
+  const lStart = vadd(lO, vscale(aNorm, -lineLen/2));
+  const lEnd   = vadd(lO, vscale(aNorm,  lineLen/2));
+
+  const lineColor = isParallel ? 'rgba(96,165,250,0.9)' : 'rgba(248,113,113,0.9)';
+  const lineColorDim = isParallel ? 'rgba(96,165,250,0.3)' : 'rgba(248,113,113,0.3)';
+  line3D(lStart, lO, lineColorDim, 1.5, [5,4]);
+  line3D(lO, lEnd, lineColor, 2.5);
+
+  // Direction arrow ā from lO
+  const aTip = vadd(lO, vscale(aNorm, Math.min(vlen(aVec)*0.6, 1.8)));
+  arrow3D(lO, aTip, '#60a5fa', 3);
+  text3D(vadd(aTip,[0.1,0.1,0.12]),'ā','#60a5fa','bold 15px Cormorant Garamond,serif');
+
+  dot3D(lO, '#60a5fa', 4);
+
+  // ── Angle / right-angle between n̄ and ā ──
+  // Place marker at midpoint between both arrow bases
+  const markerPt = vadd(planeCenter, vscale(nn, 0.01));
+  if(isParallel) {
+    // Right angle square
+    drawRightAngleMarker(markerPt, nVec, aVec, '#34d399', 0.42);
+    // Small glow dot
+    const [gx,gy]=proj(...markerPt);
+    const g=ctx.createRadialGradient(gx,gy,0,gx,gy,14);
+    g.addColorStop(0,'#34d39955'); g.addColorStop(1,'#34d39900');
+    ctx.beginPath(); ctx.arc(gx,gy,14,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    dot3D(markerPt,'#34d399',4);
+    // Label
+    text3D(vadd(markerPt,[0.5,0.1,0.1]),'90°','#34d399aa','11px JetBrains Mono,monospace');
+  } else {
+    // Arc showing actual angle
+    drawArc(markerPt, nVec, aVec, '#f8717199', 0.65);
+    const angle = Math.acos(Math.min(1,Math.abs(vdot(vnorm(nVec),vnorm(aVec)))));
+    const mid=vnorm(vadd(vnorm(nVec),vnorm(aVec)));
+    text3D(vadd(vadd(markerPt,vscale(mid,0.8)),[0.05,0.05,0.05]),
+      (angle*180/Math.PI).toFixed(0)+'°','#f87171aa','11px JetBrains Mono,monospace');
+  }
+
+  // If not parallel, draw intersection point hint
+  if(!isParallel) {
+    // Find where line (from lO along aVec) hits plane (nVec·x + D = 0, D=0)
+    const denom = vdot(nVec, aVec);
+    if(Math.abs(denom) > 1e-6) {
+      const t = -vdot(nVec, lO) / denom;
+      const ipt = vadd(lO, vscale(aVec, t));
+      if(vlen(vsub(ipt,planeCenter))<6) {
+        dot3D(ipt,'#f87171',6);
+        text3D(vadd(ipt,[0.1,0.1,0.1]),'∩','#f87171','13px JetBrains Mono,monospace');
+      }
+    }
+  }
+
+  updateUI(dp);
+
+  document.getElementById('sPhi').textContent=(camPhi*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sTheta').textContent=(camTheta*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sZoom').textContent=zoom.toFixed(2);
+}
+
+// ─── UI ──────────────────────────────────────────────────────────────────────
+function updateUI(dp) {
+  const isParallel = Math.abs(dp) < 0.015;
+  const box=document.getElementById('condBox');
+  const res=document.getElementById('dotResult');
+  const sta=document.getElementById('condStatus');
+
+  res.textContent=dp.toFixed(3);
+  res.className='dot-result '+(isParallel?'zero':'nonzero');
+  sta.textContent=isParallel?'∥ ПАРАЛЕЛЬНІ':'∦ НЕ ПАРАЛЕЛЬНІ';
+  sta.className='cond-status '+(isParallel?'ok':'fail');
+  box.className='condition-box '+(isParallel?'ok':'fail');
+
+  const [A,B,C]=nVec;
+  const [m,n,p]=aVec;
+  document.getElementById('termAm').textContent=(A*m).toFixed(2);
+  document.getElementById('termBn').textContent=(B*n).toFixed(2);
+  document.getElementById('termCp').textContent=(C*p).toFixed(2);
+}
+
+// ─── Snap ─────────────────────────────────────────────────────────────────────
+function snapParallel() {
+  // Make aVec perpendicular to nVec via Gram-Schmidt
+  const nn=vnorm(nVec);
+  let candidate=[1,0,0];
+  if(Math.abs(vdot(nn,candidate))>0.95) candidate=[0,1,0];
+  const d=vdot(candidate,nn);
+  const perp=vnorm(vsub(candidate,vscale(nn,d)));
+  aVec=[parseFloat((perp[0]*2).toFixed(1)), parseFloat((perp[1]*2).toFixed(1)), parseFloat((perp[2]*2).toFixed(1))];
+  document.getElementById('am').value=aVec[0];
+  document.getElementById('an').value=aVec[1];
+  document.getElementById('ap').value=aVec[2];
+  document.getElementById('amv').textContent=aVec[0].toFixed(1);
+  document.getElementById('anv').textContent=aVec[1].toFixed(1);
+  document.getElementById('apv').textContent=aVec[2].toFixed(1);
+  draw();
+}
+
+// ─── Sliders ──────────────────────────────────────────────────────────────────
+function bind(id,vid,cb) {
+  const el=document.getElementById(id), vl=document.getElementById(vid);
+  el.addEventListener('input',()=>{
+    const v=parseFloat(el.value);
+    vl.textContent=v.toFixed(1);
+    cb(v); draw();
+  });
+}
+bind('nA','nAv', v=>{ nVec=[v,nVec[1],nVec[2]]; });
+bind('nB','nBv', v=>{ nVec=[nVec[0],v,nVec[2]]; });
+bind('nC','nCv', v=>{ nVec=[nVec[0],nVec[1],v]; });
+bind('am','amv', v=>{ aVec=[v,aVec[1],aVec[2]]; });
+bind('an','anv', v=>{ aVec=[aVec[0],v,aVec[2]]; });
+bind('ap','apv', v=>{ aVec=[aVec[0],aVec[1],v]; });
+
+// ─── Camera ───────────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging) return;
+  camPhi+=(e.clientX-lastX)*0.01;
+  camTheta+=(e.clientY-lastY)*0.01;
+  camTheta=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,camTheta));
+  lastX=e.clientX; lastY=e.clientY; draw();
+});
+canvas.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('mouseleave',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom*=e.deltaY>0?0.92:1.08;
+  zoom=Math.max(0.2,Math.min(5,zoom));
+  draw();
+},{passive:false});
+
+draw();
+</script>
+</body>
+</html>

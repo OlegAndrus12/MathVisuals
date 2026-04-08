@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кут і рівняння прямої</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:       #0c0c10;
+  --surface:  #13131a;
+  --surface2: #1a1a24;
+  --border:   #252535;
+  --border2:  #303048;
+  --text:     #e2e2ee;
+  --muted:    #7070a0;
+  --dim:      #404060;
+  --green:    #4fffb0;
+  --red:      #ff5f7e;
+  --purple:   #a78bfa;
+  --amber:    #fbbf24;
+  --blue:     #60a5fa;
+  --green-dim:rgba(79,255,176,0.12);
+  --red-dim:  rgba(255,95,126,0.12);
+  --serif:    'Playfair Display', serif;
+  --mono:     'IBM Plex Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+header {
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+header .sub {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 18px;
+  gap: 18px;
+}
+
+.section-lbl {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Angle slider */
+.angle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.angle-row span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.angle-row strong { font-size: 16px; font-weight: 500; min-width: 44px; text-align: right; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border2);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--border2);
+  transition: box-shadow .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { box-shadow: 0 0 0 3px rgba(255,255,255,0.1); }
+
+/* Mode toggle */
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: var(--surface2);
+  padding: 3px;
+  border-radius: 8px;
+}
+.mode-btn {
+  padding: 8px 4px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+  line-height: 1.4;
+}
+.mode-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+
+/* Vector inputs */
+.vec-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.vec-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.vec-field input[type=number] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .15s;
+}
+.vec-field input:focus { border-color: var(--border2); }
+
+/* Result box */
+.result-box {
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.result-box.good { border-color: rgba(79,255,176,0.3); background: rgba(79,255,176,0.04); }
+.result-box.bad  { border-color: rgba(255,95,126,0.3);  background: rgba(255,95,126,0.04); }
+
+.result-lbl { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.result-eq  { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--text); text-align: center; min-height: 30px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.result-eq .eqgood { color: var(--green); }
+.result-eq .eqbad  { color: var(--red); }
+.result-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; line-height: 1.7; }
+
+/* Derivation steps */
+.deriv {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.deriv-step {
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.deriv-step:last-child { border-bottom: none; }
+.deriv-step .val { color: var(--text); font-weight: 500; text-align: right; }
+.deriv-step .val.hi { color: var(--amber); }
+.deriv-step .val.good { color: var(--green); }
+.deriv-step .val.bad  { color: var(--red); }
+
+/* Insight */
+.insight {
+  background: var(--surface2);
+  border-left: 3px solid var(--border2);
+  border-radius: 0 8px 8px 0;
+  padding: 10px 13px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.8;
+  transition: border-color .3s;
+}
+.insight.active-good { border-left-color: var(--green); }
+.insight.active-bad  { border-left-color: var(--red); }
+.insight strong { color: var(--text); }
+
+/* Canvas */
+.canvas-wrap {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  background: var(--bg);
+}
+
+canvas { display: block; width: 100%; height: 100%; }
+
+.canvas-info {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.tag {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.tag span { color: var(--text); font-weight: 500; }
+
+.zoom-btns {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zoom-btn {
+  width: 30px; height: 30px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.zoom-btn:hover { color: var(--text); border-color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Кут і рівняння прямої</h1>
+  <span class="sub">Чому лише 90° дає одну пряму</span>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+
+    <div>
+      <div class="section-lbl">Режим</div>
+      <div class="mode-grid">
+        <button class="mode-btn active" id="m90" onclick="setMode('90')">φ = 90°<br><small>нормаль ⊥ L</small></button>
+        <button class="mode-btn" id="marb" onclick="setMode('arb')">φ — довільний<br><small>що вийде?</small></button>
+      </div>
+    </div>
+
+    <div id="angle-section" style="display:none">
+      <div class="section-lbl">Кут φ</div>
+      <div class="angle-row">
+        <span>φ =</span>
+        <input type="range" min="5" max="175" value="45" step="1" id="phi-sl" oninput="upd()">
+        <strong id="phi-val" style="color:var(--amber)">45°</strong>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-lbl">Вектор v(a, b)</div>
+      <div class="vec-inputs">
+        <div class="vec-field">
+          <label>a</label>
+          <input type="number" id="va" value="1" step="0.5" oninput="upd()">
+        </div>
+        <div class="vec-field">
+          <label>b</label>
+          <input type="number" id="vb" value="0" step="0.5" oninput="upd()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-lbl">Точка M₀(x₀, y₀)</div>
+      <div class="vec-inputs">
+        <div class="vec-field">
+          <label>x₀</label>
+          <input type="number" id="px" value="0" step="0.5" oninput="upd()">
+        </div>
+        <div class="vec-field">
+          <label>y₀</label>
+          <input type="number" id="py" value="0" step="0.5" oninput="upd()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-lbl">Вивід рівняння</div>
+      <div class="deriv" id="deriv"></div>
+    </div>
+
+    <div class="result-box" id="result-box">
+      <div class="result-lbl">Результат</div>
+      <div class="result-eq" id="result-eq">—</div>
+      <div class="result-note" id="result-note"></div>
+    </div>
+
+    <div class="insight" id="insight"></div>
+
+  </div>
+
+  <div class="canvas-wrap" id="cwrap">
+    <canvas id="cv"></canvas>
+    <div class="canvas-info">
+      <div class="tag">x: <span id="mx">0</span>, y: <span id="my">0</span></div>
+    </div>
+    <div class="zoom-btns">
+      <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+      <button class="zoom-btn" onclick="zoom(0.83)">−</button>
+      <button class="zoom-btn" onclick="resetView()" title="Reset">⌂</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const wrap = document.getElementById('cwrap');
+
+let mode = '90';
+let view = { scale: 50, ox: 0, oy: 0 };
+let isPan = false, panStart = null, viewStart = null;
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('m90').classList.toggle('active', m === '90');
+  document.getElementById('marb').classList.toggle('active', m === 'arb');
+  document.getElementById('angle-section').style.display = m === 'arb' ? 'block' : 'none';
+  upd();
+}
+
+function resetView() {
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  view.ox = W / 2; view.oy = H / 2; view.scale = 50;
+  draw();
+}
+
+function zoom(f) {
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const cx = W / 2, cy = H / 2;
+  view.ox = cx + (view.ox - cx) * f;
+  view.oy = cy + (view.oy - cy) * f;
+  view.scale *= f;
+  draw();
+}
+
+function toS(gx, gy) { return [view.ox + gx * view.scale, view.oy - gy * view.scale]; }
+function toG(sx, sy) { return [(sx - view.ox) / view.scale, (view.oy - sy) / view.scale]; }
+function fmt(v) { const r = Math.round(v * 100) / 100; return r % 1 === 0 ? String(r) : r.toFixed(2); }
+function fmtShort(v) { const r = Math.round(v * 10) / 10; return r % 1 === 0 ? String(r) : r.toFixed(1); }
+
+function termStr(c, varName, first) {
+  if (Math.abs(c) < 1e-9) return '';
+  const abs = Math.abs(c), neg = c < 0;
+  const sign = first ? (neg ? '−' : '') : (neg ? ' − ' : ' + ');
+  const cs = Math.abs(abs - 1) < 1e-9 ? '' : fmt(abs);
+  return sign + cs + varName;
+}
+
+function buildLinear(A, B, x0, y0) {
+  const C = -(A * x0 + B * y0);
+  let parts = [];
+  const t1 = termStr(A, 'x', true); if (t1) parts.push(t1);
+  const t2 = termStr(B, 'y', parts.length === 0); if (t2) parts.push(t2);
+  if (Math.abs(C) > 1e-9 || parts.length === 0) {
+    const sign = C < 0 ? (parts.length ? ' − ' : '−') : (parts.length ? ' + ' : '');
+    parts.push(sign + fmt(Math.abs(C)));
+  }
+  return parts.join('') + ' = 0';
+}
+
+function upd() {
+  const a = parseFloat(document.getElementById('va').value) || 0;
+  const b = parseFloat(document.getElementById('vb').value) || 0;
+  const x0 = parseFloat(document.getElementById('px').value) || 0;
+  const y0 = parseFloat(document.getElementById('py').value) || 0;
+  const phi = parseInt(document.getElementById('phi-sl').value) || 45;
+  document.getElementById('phi-val').textContent = phi + '°';
+
+  const vlen = Math.hypot(a, b);
+  const cosPhi = Math.cos(phi * Math.PI / 180);
+  const cos2 = cosPhi * cosPhi;
+
+  const deriv = document.getElementById('deriv');
+  const rbox = document.getElementById('result-box');
+  const req = document.getElementById('result-eq');
+  const rnote = document.getElementById('result-note');
+  const ins = document.getElementById('insight');
+
+  if (mode === '90') {
+    deriv.innerHTML = `
+      <div class="deriv-step">Умова <span class="val">n̄ · M₀M = 0</span></div>
+      <div class="deriv-step">n̄ = v = (${fmt(a)}, ${fmt(b)}) <span class="val">⊥ прямій</span></div>
+      <div class="deriv-step">M₀M = (x−${fmt(x0)}, y−${fmt(y0)}) <span class="val"></span></div>
+      <div class="deriv-step">Скал. добуток <span class="val hi">${fmt(a)}(x−${fmt(x0)}) + ${fmt(b)}(y−${fmt(y0)}) = 0</span></div>
+      <div class="deriv-step">cos(90°) = <span class="val good">0 → рівняння лінійне</span></div>
+    `;
+    const eq = (vlen < 1e-9) ? '—' : buildLinear(a, b, x0, y0);
+    req.innerHTML = `<span class="eqgood">${eq}</span>`;
+    rnote.textContent = 'Одна пряма. Лінійне рівняння.';
+    rbox.className = 'result-box good';
+    ins.className = 'insight active-good';
+    ins.innerHTML = `n̄ · M₀M = 0 → cos(90°) = 0 → права частина зникає → рівняння залишається <strong>лінійним</strong> → одна пряма.`;
+  } else {
+    const c2str = fmt(cos2);
+    const v2str = fmt(vlen * vlen);
+    deriv.innerHTML = `
+      <div class="deriv-step">Умова <span class="val">кут(v, M₀M) = ${phi}°</span></div>
+      <div class="deriv-step">v·M₀M = |v||M₀M|cos(${phi}°) <span class="val"></span></div>
+      <div class="deriv-step">Піднести до квадрату <span class="val hi">[...]² = |v|²cos²φ·[...]</span></div>
+      <div class="deriv-step">cos²(${phi}°) = <span class="val hi">${fmtShort(cos2)}</span></div>
+      <div class="deriv-step">|v|² = <span class="val">${v2str}</span></div>
+      <div class="deriv-step">Права частина <span class="val bad">${fmtShort(vlen * vlen * cos2)}·[(x−${fmt(x0)})²+(y−${fmt(y0)})²]</span></div>
+    `;
+    if (Math.abs(cosPhi) < 0.01) {
+      const eq = (vlen < 1e-9) ? '—' : buildLinear(a, b, x0, y0);
+      req.innerHTML = `<span class="eqgood">${eq}</span>`;
+      rnote.textContent = 'cos(90°) = 0 → права частина = 0 → одна пряма!';
+      rbox.className = 'result-box good';
+      ins.className = 'insight active-good';
+      ins.innerHTML = `При φ → 90° cos φ → 0 — квадратний член зникає і ми повертаємось до <strong>лінійного рівняння</strong>.`;
+    } else {
+      req.innerHTML = `<span class="eqbad">два промені</span>`;
+      rnote.textContent = `[${fmt(a)}(x−${fmt(x0)})+${fmt(b)}(y−${fmt(y0)})]² = ${fmtShort(vlen*vlen*cos2)}[(x−${fmt(x0)})²+(y−${fmt(y0)})²]`;
+      rbox.className = 'result-box bad';
+      ins.className = 'insight active-bad';
+      ins.innerHTML = `Квадрат знищує знак → обидва промені під кутом ±${phi}° потрапляють у розв'язок. <strong>Одну пряму вибрати неможливо.</strong>`;
+    }
+  }
+
+  draw();
+}
+
+function draw() {
+  const dpr = devicePixelRatio;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  if (!view.ox) { view.ox = W / 2; view.oy = H / 2; }
+
+  ctx.fillStyle = '#0c0c10';
+  ctx.fillRect(0, 0, W, H);
+
+  const sc = view.scale;
+
+  // dot grid
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  const sx0 = ((view.ox % sc) + sc) % sc;
+  const sy0 = ((view.oy % sc) + sc) % sc;
+  for (let x = sx0; x < W; x += sc)
+    for (let y = sy0; y < H; y += sc) {
+      ctx.beginPath(); ctx.arc(x, y, 0.7, 0, Math.PI * 2); ctx.fill();
+    }
+
+  // axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, view.oy); ctx.lineTo(W, view.oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(view.ox, 0); ctx.lineTo(view.ox, H); ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  const tstep = sc < 25 ? 5 : sc < 50 ? 2 : 1;
+  const gx0 = Math.ceil(-view.ox / sc / tstep) * tstep;
+  const gx1 = Math.floor((W - view.ox) / sc / tstep) * tstep;
+  ctx.textAlign = 'center';
+  for (let g = gx0; g <= gx1; g += tstep) {
+    if (g === 0) continue;
+    const px = view.ox + g * sc;
+    ctx.fillText(g, px, view.oy + 14);
+  }
+  ctx.textAlign = 'right';
+  const gy0 = Math.ceil((view.oy - H) / sc / tstep) * tstep;
+  const gy1 = Math.floor(view.oy / sc / tstep) * tstep;
+  for (let g = gy0; g <= gy1; g += tstep) {
+    if (g === 0) continue;
+    ctx.fillText(g, view.ox - 6, view.oy - g * sc + 3);
+  }
+
+  const a = parseFloat(document.getElementById('va').value) || 0;
+  const b = parseFloat(document.getElementById('vb').value) || 0;
+  const x0 = parseFloat(document.getElementById('px').value) || 0;
+  const y0 = parseFloat(document.getElementById('py').value) || 0;
+  const phi = parseInt(document.getElementById('phi-sl').value) || 45;
+  const vlen = Math.hypot(a, b);
+
+  const [osx, osy] = toS(x0, y0);
+
+  function drawArrow(x1, y1, x2, y2, color, lw, dash) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color;
+    ctx.lineWidth = lw;
+    if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    const al = 10;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - al * Math.cos(ang - 0.38), y2 - al * Math.sin(ang - 0.38));
+    ctx.lineTo(x2 - al * Math.cos(ang + 0.38), y2 - al * Math.sin(ang + 0.38));
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLine(A, B, C, color, lw, dash) {
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = lw;
+    if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+    ctx.beginPath();
+    if (Math.abs(B) > 1e-9) {
+      const gx1 = (0 - view.ox) / sc, gx2 = (W - view.ox) / sc;
+      const [sx1, sy1] = toS(gx1, -(A * gx1 + C) / B);
+      const [sx2, sy2] = toS(gx2, -(A * gx2 + C) / B);
+      ctx.moveTo(sx1, sy1); ctx.lineTo(sx2, sy2);
+    } else if (Math.abs(A) > 1e-9) {
+      const xi = -C / A;
+      const [sx] = toS(xi, 0);
+      ctx.moveTo(sx, 0); ctx.lineTo(sx, H);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (mode === '90') {
+    if (vlen > 1e-9) {
+      const C = -(a * x0 + b * y0);
+      // glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(79,255,176,0.4)'; ctx.shadowBlur = 20;
+      drawLine(a, b, C, '#4fffb0', 2.5);
+      ctx.restore();
+
+      // normal vector
+      const ns = 80;
+      const nex = osx + (a / vlen) * ns, ney = osy - (b / vlen) * ns;
+      drawArrow(osx, osy, nex, ney, '#a78bfa', 2);
+
+      // perp square
+      const ang = Math.atan2(-b, a);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(167,139,250,0.5)'; ctx.lineWidth = 1;
+      ctx.translate(osx, osy);
+      ctx.rotate(ang);
+      ctx.strokeRect(0, -12, 12, 12);
+      ctx.restore();
+
+      // label n
+      ctx.fillStyle = '#a78bfa';
+      ctx.font = '500 13px IBM Plex Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`n̄(${fmt(a)}, ${fmt(b)})`, nex + 8, ney);
+    }
+  } else {
+    if (vlen > 1e-9) {
+      const phiRad = phi * Math.PI / 180;
+      const cosPhi = Math.cos(phiRad);
+
+      // vector v
+      const vs = 80;
+      const vAngle = Math.atan2(-b, a);
+      const vex = osx + (a / vlen) * vs, vey = osy - (b / vlen) * vs;
+      drawArrow(osx, osy, vex, vey, '#fbbf24', 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '12px IBM Plex Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(`v(${fmt(a)}, ${fmt(b)})`, vex + 8, vey);
+
+      if (Math.abs(cosPhi) < 0.02) {
+        // effectively 90 — one line
+        const C = -(a * x0 + b * y0);
+        ctx.save(); ctx.shadowColor = 'rgba(79,255,176,0.4)'; ctx.shadowBlur = 20;
+        drawLine(a, b, C, '#4fffb0', 2.5);
+        ctx.restore();
+      } else {
+        // two rays: angle ±phi from v direction
+        const ray1Angle = vAngle - phiRad;
+        const ray2Angle = vAngle + phiRad;
+
+        // draw as full lines (rays extended both ways to show full lines)
+        const rayLen = Math.max(W, H) * 2;
+        ctx.save();
+        ctx.strokeStyle = '#ff5f7e'; ctx.lineWidth = 2;
+        ctx.shadowColor = 'rgba(255,95,126,0.35)'; ctx.shadowBlur = 16;
+
+        // line 1
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(osx - Math.cos(ray1Angle) * rayLen, osy - Math.sin(ray1Angle) * rayLen);
+        ctx.lineTo(osx + Math.cos(ray1Angle) * rayLen, osy + Math.sin(ray1Angle) * rayLen);
+        ctx.stroke();
+
+        // line 2
+        ctx.setLineDash([7, 4]);
+        ctx.beginPath();
+        ctx.moveTo(osx - Math.cos(ray2Angle) * rayLen, osy - Math.sin(ray2Angle) * rayLen);
+        ctx.lineTo(osx + Math.cos(ray2Angle) * rayLen, osy + Math.sin(ray2Angle) * rayLen);
+        ctx.stroke();
+        ctx.restore();
+
+        // angle arcs
+        const arcR = 36;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(251,191,36,0.6)'; ctx.lineWidth = 1.2;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(osx, osy, arcR, -vAngle - phiRad, -vAngle, false);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(osx, osy, arcR, -vAngle, -vAngle + phiRad, false);
+        ctx.stroke();
+        ctx.restore();
+
+        // phi labels
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '11px IBM Plex Mono, monospace';
+        ctx.textAlign = 'center';
+        const lA1 = -(vAngle + phiRad / 2);
+        const lA2 = -(vAngle - phiRad / 2);
+        ctx.fillText('φ', osx + 50 * Math.cos(lA1), osy - 50 * Math.sin(lA1) + 4);
+        ctx.fillText('φ', osx + 50 * Math.cos(lA2), osy - 50 * Math.sin(lA2) + 4);
+
+        // labels for the two lines
+        ctx.fillStyle = '#ff5f7e';
+        ctx.font = '11px IBM Plex Mono, monospace';
+        ctx.textAlign = 'left';
+        const lx1 = osx + Math.cos(ray1Angle) * 120, ly1 = osy + Math.sin(ray1Angle) * 120;
+        const lx2 = osx + Math.cos(ray2Angle) * 120, ly2 = osy + Math.sin(ray2Angle) * 120;
+        ctx.fillText('пряма 1', lx1 + 6, ly1);
+        ctx.setLineDash([3, 2]);
+        ctx.fillText('пряма 2', lx2 + 6, ly2);
+      }
+    }
+  }
+
+  // M0 dot
+  ctx.beginPath();
+  ctx.arc(osx, osy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#ff5f7e';
+  ctx.shadowColor = 'rgba(255,95,126,0.5)'; ctx.shadowBlur = 12;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ff5f7e';
+  ctx.font = '12px IBM Plex Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`M₀(${fmt(x0)}, ${fmt(y0)})`, osx + 10, osy - 8);
+}
+
+// mouse
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  if (isPan && panStart) {
+    view.ox = viewStart.ox + mx - panStart[0];
+    view.oy = viewStart.oy + my - panStart[1];
+    draw(); return;
+  }
+  const [gx, gy] = toG(mx, my);
+  document.getElementById('mx').textContent = fmtShort(gx);
+  document.getElementById('my').textContent = fmtShort(gy);
+});
+
+cv.addEventListener('mousedown', e => {
+  if (e.button === 1 || e.altKey) {
+    isPan = true;
+    const r = cv.getBoundingClientRect();
+    panStart = [e.clientX - r.left, e.clientY - r.top];
+    viewStart = { ox: view.ox, oy: view.oy };
+    e.preventDefault();
+  }
+});
+
+cv.addEventListener('mouseup', () => { isPan = false; panStart = null; });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  view.ox = mx + (view.ox - mx) * f;
+  view.oy = my + (view.oy - my) * f;
+  view.scale *= f;
+  draw();
+}, { passive: false });
+
+window.addEventListener('resize', () => { draw(); });
+
+// init
+setTimeout(() => {
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  view.ox = W / 2; view.oy = H / 2;
+  upd();
+}, 50);
+</script>
+</body>
+</html>

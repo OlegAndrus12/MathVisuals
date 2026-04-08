@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пряма перпендикулярна до площини</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --border: #1e2230;
+    --accent: #4ade80;
+    --accent2: #60a5fa;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --n-color: #facc15;
+    --a-color: #60a5fa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  header .sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+  }
+
+  .layout { display:flex; flex:1; overflow:hidden; min-width:0; }
+  canvas { flex:1; min-width:0; display:block; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+
+  .panel {
+    width: 380px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-bottom: 6px;
+  }
+
+  .condition-box {
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: border-color 0.4s, background 0.4s;
+    border: 2px solid;
+  }
+  .condition-box.ok   { border-color: #4ade8066; background: #4ade8008; }
+  .condition-box.fail { border-color: #f8717166; background: #f8717108; }
+
+  .cond-formula {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    margin-bottom: 12px;
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+  .frac-num { border-bottom: 1px solid var(--muted); padding: 0 4px; color: var(--n-color); line-height: 1.4; }
+  .frac-den { padding: 0 4px; color: var(--a-color); line-height: 1.4; }
+  .eq-sign  { color: var(--muted); }
+
+  /* Ratio values */
+  .ratio-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ratio-item {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    text-align: center;
+    min-width: 60px;
+  }
+  .ratio-item .rl { font-size: 0.55rem; color: var(--muted); display: block; margin-bottom: 2px; }
+  .ratio-item .rv { font-size: 0.85rem; font-family: 'Cormorant Garamond', serif; }
+
+  .cross-result {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .cross-result span { color: var(--accent2); }
+
+  .cond-status {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    padding: 3px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    transition: all 0.4s;
+  }
+  .cond-status.ok   { background: #4ade8018; color: #4ade80; border: 1px solid #4ade8044; }
+  .cond-status.fail { background: #f8717118; color: #f87171; border: 1px solid #f8717144; }
+
+  .block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .slider-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .slider-row label { font-size: 0.65rem; color: var(--muted); white-space: nowrap; width: 24px; text-align: right; }
+  input[type=range] { flex:1; cursor:pointer; }
+  input.cn { accent-color: var(--n-color); }
+  input.ca { accent-color: var(--a-color); }
+  .sv { font-size: 0.78rem; width: 38px; text-align: right; }
+  .sv.cn { color: var(--n-color); }
+  .sv.ca { color: var(--a-color); }
+
+  .badge {
+    display: inline-block; font-size: 0.6rem; padding: 2px 8px;
+    border-radius: 20px; letter-spacing: 0.08em; margin-left: 4px;
+  }
+  .bn { background: #facc1518; color: var(--n-color); border: 1px solid #facc1544; }
+  .ba { background: #60a5fa18; color: var(--a-color); border: 1px solid #60a5fa44; }
+
+  .snap-btn {
+    background: none; border: 1px solid #4ade8044; color: #4ade80;
+    padding: 8px 14px; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em; cursor: pointer;
+    border-radius: 4px; transition: all 0.2s; width: 100%;
+  }
+  .snap-btn:hover { background: #4ade8018; }
+
+  .divider { height: 1px; background: var(--border); }
+
+  .hint {
+    font-size: 0.63rem; color: var(--muted); line-height: 1.7;
+    padding: 10px; background: #0d1117; border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .status-bar {
+    padding: 6px 24px; background: var(--panel);
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem; color: var(--muted);
+    display: flex; gap: 24px; white-space: nowrap;
+  }
+  .status-bar span { color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Пряма L ⊥ площині π</h1>
+  <span class="sub">умова: A/m = B/n = C/p (вектори колінеарні)</span>
+</header>
+
+<div class="layout">
+  <canvas id="canvas"></canvas>
+
+  <div class="panel">
+
+    <div>
+      <div class="section-title">Умова перпендикулярності</div>
+      <div class="condition-box ok" id="condBox">
+        <div class="cond-formula">
+          <div class="frac">
+            <span class="frac-num">A</span>
+            <span class="frac-den">m</span>
+          </div>
+          <span class="eq-sign">=</span>
+          <div class="frac">
+            <span class="frac-num">B</span>
+            <span class="frac-den">n</span>
+          </div>
+          <span class="eq-sign">=</span>
+          <div class="frac">
+            <span class="frac-num">C</span>
+            <span class="frac-den">p</span>
+          </div>
+        </div>
+
+        <div class="ratio-row">
+          <div class="ratio-item">
+            <span class="rl">A/m</span>
+            <span class="rv" id="rAm" style="color:var(--accent2)">—</span>
+          </div>
+          <div class="ratio-item">
+            <span class="rl">B/n</span>
+            <span class="rv" id="rBn" style="color:var(--accent2)">—</span>
+          </div>
+          <div class="ratio-item">
+            <span class="rl">C/p</span>
+            <span class="rv" id="rCp" style="color:var(--accent2)">—</span>
+          </div>
+        </div>
+
+        <div class="cross-result" id="crossResult">ā × n̄ = <span>(0, 0, 0)</span></div>
+        <div class="cond-status ok" id="condStatus">⊥ ПЕРПЕНДИКУЛЯРНІ</div>
+      </div>
+    </div>
+
+    <!-- Plane normal -->
+    <div class="block">
+      <div class="section-title">Нормаль площини n̄(A,B,C) <span class="badge bn">жовта</span></div>
+      <div class="slider-row">
+        <label>A</label>
+        <input type="range" class="cn" id="nA" min="-4" max="4" step="0.1" value="0">
+        <span class="sv cn" id="nAv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>B</label>
+        <input type="range" class="cn" id="nB" min="-4" max="4" step="0.1" value="0">
+        <span class="sv cn" id="nBv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>C</label>
+        <input type="range" class="cn" id="nC" min="-4" max="4" step="0.1" value="1">
+        <span class="sv cn" id="nCv">1.0</span>
+      </div>
+    </div>
+
+    <!-- Direction vector -->
+    <div class="block">
+      <div class="section-title">Напрямний вектор ā(m,n,p) <span class="badge ba">синій</span></div>
+      <div class="slider-row">
+        <label>m</label>
+        <input type="range" class="ca" id="am" min="-4" max="4" step="0.1" value="0">
+        <span class="sv ca" id="amv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>n</label>
+        <input type="range" class="ca" id="an" min="-4" max="4" step="0.1" value="0">
+        <span class="sv ca" id="anv">0.0</span>
+      </div>
+      <div class="slider-row">
+        <label>p</label>
+        <input type="range" class="ca" id="ap" min="-4" max="4" step="0.1" value="1">
+        <span class="sv ca" id="apv">1.0</span>
+      </div>
+    </div>
+
+    <button class="snap-btn" onclick="snapPerp()">↗ ЗРОБИТИ ПЕРПЕНДИКУЛЯРНИМИ</button>
+
+    <div class="divider"></div>
+
+    <div class="hint">
+      <strong style="color:var(--text)">Чому A/m = B/n = C/p?</strong><br>
+      Якщо L ⊥ π, то пряма «протикає» площину під прямим кутом. Це означає, що <span style="color:var(--a-color)">ā</span> і <span style="color:var(--n-color)">n̄</span> <em>колінеарні</em> — паралельні або антипаралельні.<br><br>
+      Два вектори колінеарні ↔ їх векторний добуток = <strong style="color:#34d399">0̄</strong>:<br>
+      ā × n̄ = 0̄<br><br>
+      Або рівноcильно: їх координати пропорційні — A/m = B/n = C/p = λ.
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>ϕ=<span id="sPhi">—</span> θ=<span id="sTheta">—</span></div>
+  <div>Zoom: <span id="sZoom">1.0</span>×</div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let camPhi = 0.65, camTheta = 0.38, zoom = 1.0;
+let dragging = false, lastX, lastY;
+
+let nVec = [0, 0, 1];
+let aVec = [0, 0, 1];
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  draw();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Projection ──────────────────────────────────────────────────────────────
+function proj(x,y,z) {
+  const cosP=Math.cos(camPhi), sinP=Math.sin(camPhi);
+  const cosT=Math.cos(camTheta), sinT=Math.sin(camTheta);
+  const rx=x*cosP-y*sinP, ry=x*sinP+y*cosP;
+  const s=zoom*Math.min(W,H)*0.115;
+  return [W/2+(rx)*s, H/2-(ry*sinT+z*cosT)*s];
+}
+
+// ─── Math ────────────────────────────────────────────────────────────────────
+function vlen(v) { return Math.sqrt(v[0]**2+v[1]**2+v[2]**2); }
+function vnorm(v) { const l=vlen(v); return l<1e-10?[0,0,1]:v.map(x=>x/l); }
+function vadd(a,b) { return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+function vscale(v,s) { return [v[0]*s,v[1]*s,v[2]*s]; }
+function vcross(a,b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+function vdot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+
+function isCollinear(a, b) {
+  const cr = vcross(a, b);
+  return vlen(cr) < 0.05;
+}
+
+// ─── Draw helpers ─────────────────────────────────────────────────────────────
+function line3D(p1,p2,color,w=1,dash=[]) {
+  const [x1,y1]=proj(...p1), [x2,y2]=proj(...p2);
+  ctx.beginPath(); ctx.setLineDash(dash);
+  ctx.strokeStyle=color; ctx.lineWidth=w;
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function arrow3D(p1,p2,color,w=2.5,hs=11) {
+  const [x1,y1]=proj(...p1), [x2,y2]=proj(...p2);
+  if(Math.hypot(x2-x1,y2-y1)<4) return;
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=w;
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-hs*Math.cos(a-0.38),y2-hs*Math.sin(a-0.38));
+  ctx.lineTo(x2-hs*Math.cos(a+0.38),y2-hs*Math.sin(a+0.38));
+  ctx.closePath(); ctx.fill();
+}
+
+function text3D(p,txt,color,font='12px JetBrains Mono,monospace') {
+  const [px,py]=proj(...p);
+  ctx.font=font; ctx.fillStyle=color; ctx.fillText(txt,px,py);
+}
+
+function dot3D(p,color,r=5) {
+  const [px,py]=proj(...p);
+  ctx.beginPath(); ctx.arc(px,py,r,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+function drawGrid() {
+  for(let i=-5;i<=5;i++) {
+    line3D([i,-5,0],[i,5,0],'#161a24');
+    line3D([-5,i,0],[5,i,0],'#161a24');
+  }
+}
+
+function drawAxes() {
+  const L=4.5;
+  arrow3D([-L,0,0],[L,0,0],'#ef444455',1.5);
+  arrow3D([0,-L,0],[0,L,0],'#4ade8055',1.5);
+  arrow3D([0,0,-2],[0,0,L],'#60a5fa55',1.5);
+  text3D([L+0.2,0,0],'x','#ef4444aa');
+  text3D([0,L+0.2,0],'y','#4ade80aa');
+  text3D([0,0,L+0.2],'z','#60a5faaa');
+}
+
+function drawPlane(normal, center, isPerp) {
+  const n=vnorm(normal);
+  let t1=[1,0,0];
+  if(Math.abs(vdot(n,t1))>0.9) t1=[0,1,0];
+  const t2n=vcross(n,t1);
+  t1=vnorm(vcross(t2n,n));
+  const t2=vnorm(t2n);
+  const sz=4;
+  const corners=[
+    vadd(vadd(center,vscale(t1,-sz)),vscale(t2,-sz)),
+    vadd(vadd(center,vscale(t1, sz)),vscale(t2,-sz)),
+    vadd(vadd(center,vscale(t1, sz)),vscale(t2, sz)),
+    vadd(vadd(center,vscale(t1,-sz)),vscale(t2, sz)),
+  ];
+  const pp=corners.map(c=>proj(...c));
+  ctx.beginPath();
+  ctx.moveTo(pp[0][0],pp[0][1]);
+  for(let i=1;i<4;i++) ctx.lineTo(pp[i][0],pp[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = isPerp?'rgba(74,222,128,0.10)':'rgba(248,113,113,0.10)';
+  ctx.fill();
+  ctx.strokeStyle = isPerp?'rgba(74,222,128,0.45)':'rgba(248,113,113,0.45)';
+  ctx.lineWidth=1.5; ctx.stroke();
+  text3D(vadd(corners[1],[0.3,0,0]),'π', isPerp?'#4ade8099':'#f8717199',
+    'italic 15px Cormorant Garamond,serif');
+}
+
+// Draw collinearity visual: two vectors side by side with glow if collinear
+function drawCollinearIndicator(p, n, a, isCol) {
+  if(isCol) {
+    // Glow at pierce point
+    const [gx,gy]=proj(...p);
+    const g=ctx.createRadialGradient(gx,gy,0,gx,gy,20);
+    g.addColorStop(0,'#34d39966'); g.addColorStop(1,'#34d39900');
+    ctx.beginPath(); ctx.arc(gx,gy,20,0,Math.PI*2);
+    ctx.fillStyle=g; ctx.fill();
+    dot3D(p,'#34d399',6);
+  } else {
+    dot3D(p,'#f87171',5);
+  }
+}
+
+// Draw right-angle marker at pierce point between plane and line
+function drawPierceRightAngle(piercePoint, planeNorm, isPerp) {
+  if(!isPerp) return;
+  const n=vnorm(planeNorm);
+  // Find a vector in the plane
+  let t=[1,0,0];
+  if(Math.abs(vdot(n,t))>0.9) t=[0,1,0];
+  const inPlane=vnorm(vcross(n,t));
+  const sz=0.38;
+  const p1=vadd(piercePoint,vscale(inPlane,sz));
+  const p2=vadd(vadd(piercePoint,vscale(inPlane,sz)),vscale(n,sz));
+  const p3=vadd(piercePoint,vscale(n,sz));
+  line3D(p1,p2,'#34d399aa',2);
+  line3D(p2,p3,'#34d399aa',2);
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a0c10'; ctx.fillRect(0,0,W,H);
+  drawGrid();
+  drawAxes();
+
+  const col = isCollinear(nVec, aVec);
+  const planeCenter=[0,0,0];
+
+  drawPlane(nVec, planeCenter, col);
+
+  // Normal n̄ from plane center
+  const nn=vnorm(nVec);
+  const nTip=vadd(planeCenter,vscale(nn,2.4));
+  arrow3D(planeCenter, nTip, '#facc15', 3);
+  text3D(vadd(nTip,[0.1,0.1,0.12]),'n̄','#facc15','bold 15px Cormorant Garamond,serif');
+
+  // Line: passes through plane, direction = aVec
+  const an=vnorm(aVec);
+  const lineLen=3.5;
+  const piercePoint=[0.0, 0.0, 0.0]; // line passes through origin
+
+  // Draw dashed below plane, solid above
+  const below=vadd(piercePoint,vscale(an,-lineLen));
+  const above=vadd(piercePoint,vscale(an, lineLen));
+
+  const lineCol=col?'rgba(96,165,250,0.9)':'rgba(248,113,113,0.85)';
+  const lineDim=col?'rgba(96,165,250,0.3)':'rgba(248,113,113,0.3)';
+
+  line3D(below, piercePoint, lineDim, 1.5, [5,4]);
+  line3D(piercePoint, above, lineCol, 2.5);
+
+  // Direction arrow ā along line above pierce
+  const aTip=vadd(piercePoint,vscale(an,1.8));
+  arrow3D(piercePoint, aTip, '#60a5fa', 3);
+  text3D(vadd(aTip,[0.12,0.12,0.12]),'ā','#60a5fa','bold 15px Cormorant Garamond,serif');
+
+  // Label L at top
+  text3D(vadd(above,[0.12,0.12,0.12]),'L',lineCol,'bold 13px Cormorant Garamond,serif');
+
+  // Pierce point marker + right angle
+  drawPierceRightAngle(piercePoint, nVec, col);
+  drawCollinearIndicator(piercePoint, nn, an, col);
+
+  // If not collinear, show the angle between ā and n̄
+  if(!col) {
+    const dp=Math.max(-1,Math.min(1,vdot(vnorm(nVec),vnorm(aVec))));
+    const angle=Math.acos(Math.abs(dp));
+    // arc
+    const na=vnorm(nVec), nb=vnorm(aVec);
+    const pts=[];
+    for(let i=0;i<=20;i++){
+      const t=i/20;
+      const v=vnorm([na[0]*(1-t)+nb[0]*t,na[1]*(1-t)+nb[1]*t,na[2]*(1-t)+nb[2]*t]);
+      pts.push(vadd(piercePoint,vscale(v,0.7)));
+    }
+    const [px0,py0]=proj(...pts[0]);
+    ctx.beginPath(); ctx.moveTo(px0,py0);
+    for(let i=1;i<pts.length;i++){const[px,py]=proj(...pts[i]);ctx.lineTo(px,py);}
+    ctx.strokeStyle='#f8717188'; ctx.lineWidth=1.5; ctx.stroke();
+    const mid=vnorm(vadd(vnorm(nVec),vnorm(aVec)));
+    text3D(vadd(vadd(piercePoint,vscale(mid,0.9)),[0.05,0.05,0.05]),
+      (angle*180/Math.PI).toFixed(0)+'°','#f87171aa','11px JetBrains Mono,monospace');
+  }
+
+  updateUI(col);
+
+  document.getElementById('sPhi').textContent=(camPhi*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sTheta').textContent=(camTheta*180/Math.PI).toFixed(0)+'°';
+  document.getElementById('sZoom').textContent=zoom.toFixed(2);
+}
+
+// ─── UI ──────────────────────────────────────────────────────────────────────
+function ratioStr(num, den) {
+  if(Math.abs(den)<0.001) return Math.abs(num)<0.001?'0/0':'∞';
+  return (num/den).toFixed(2);
+}
+
+function updateUI(col) {
+  const [A,B,C]=nVec, [m,n,p]=aVec;
+
+  document.getElementById('rAm').textContent=ratioStr(A,m);
+  document.getElementById('rBn').textContent=ratioStr(B,n);
+  document.getElementById('rCp').textContent=ratioStr(C,p);
+
+  const cr=vcross(aVec,nVec);
+  const crStr=`(${cr[0].toFixed(1)}, ${cr[1].toFixed(1)}, ${cr[2].toFixed(1)})`;
+  document.getElementById('crossResult').innerHTML=`ā × n̄ = <span>${crStr}</span>`;
+
+  const box=document.getElementById('condBox');
+  const sta=document.getElementById('condStatus');
+  box.className='condition-box '+(col?'ok':'fail');
+  sta.textContent=col?'⊥ ПЕРПЕНДИКУЛЯРНІ':'∦ НЕ ПЕРПЕНДИКУЛЯРНІ';
+  sta.className='cond-status '+(col?'ok':'fail');
+}
+
+// ─── Snap ────────────────────────────────────────────────────────────────────
+function snapPerp() {
+  // Make aVec = nVec (collinear)
+  const nn=vnorm(nVec);
+  aVec=[
+    parseFloat((nn[0]*2).toFixed(1)),
+    parseFloat((nn[1]*2).toFixed(1)),
+    parseFloat((nn[2]*2).toFixed(1))
+  ];
+  document.getElementById('am').value=aVec[0];
+  document.getElementById('an').value=aVec[1];
+  document.getElementById('ap').value=aVec[2];
+  document.getElementById('amv').textContent=aVec[0].toFixed(1);
+  document.getElementById('anv').textContent=aVec[1].toFixed(1);
+  document.getElementById('apv').textContent=aVec[2].toFixed(1);
+  draw();
+}
+
+// ─── Sliders ─────────────────────────────────────────────────────────────────
+function bind(id,vid,cb) {
+  const el=document.getElementById(id), vl=document.getElementById(vid);
+  el.addEventListener('input',()=>{
+    const v=parseFloat(el.value);
+    vl.textContent=v.toFixed(1);
+    cb(v); draw();
+  });
+}
+bind('nA','nAv', v=>{nVec=[v,nVec[1],nVec[2]];});
+bind('nB','nBv', v=>{nVec=[nVec[0],v,nVec[2]];});
+bind('nC','nCv', v=>{nVec=[nVec[0],nVec[1],v];});
+bind('am','amv', v=>{aVec=[v,aVec[1],aVec[2]];});
+bind('an','anv', v=>{aVec=[aVec[0],v,aVec[2]];});
+bind('ap','apv', v=>{aVec=[aVec[0],aVec[1],v];});
+
+// ─── Camera ───────────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  camPhi+=(e.clientX-lastX)*0.01;
+  camTheta+=(e.clientY-lastY)*0.01;
+  camTheta=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,camTheta));
+  lastX=e.clientX;lastY=e.clientY;draw();
+});
+canvas.addEventListener('mouseup',()=>dragging=false);
+canvas.addEventListener('mouseleave',()=>dragging=false);
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoom*=e.deltaY>0?0.92:1.08;
+  zoom=Math.max(0.2,Math.min(5,zoom));
+  draw();
+},{passive:false});
+
+draw();
+</script>
+</body>
+</html>

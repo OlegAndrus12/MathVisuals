@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Площина у 3D — Загальне рівняння</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Cormorant+Garamond:ital,wght@0,300;0,600;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --panel: #111318;
+    --border: #1e2230;
+    --accent: #4ade80;
+    --accent2: #60a5fa;
+    --accent3: #f472b6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --normal-color: #facc15;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    background: var(--panel);
+  }
+
+  header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+  }
+
+  header span {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  canvas {
+    flex: 1;
+    display: block;
+    cursor: grab;
+  }
+  canvas:active { cursor: grabbing; }
+
+  .panel {
+    width: 420px;
+    min-width: 420px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .section-title {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-bottom: 8px;
+  }
+
+  .equation-box {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    min-height: 48px;
+    line-height: 1.8;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .equation-box .coeff { color: var(--accent2); }
+  .equation-box .var   { color: var(--text); }
+  .equation-box .op    { color: var(--muted); }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .info-item {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+
+  .info-item .label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .info-item .value {
+    font-size: 0.85rem;
+    color: var(--accent2);
+  }
+
+  .points-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .point-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .point-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+
+  .point-coords { color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0 4px;
+    transition: color 0.2s;
+  }
+  .btn-remove:hover { color: #f87171; }
+
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-primary:hover {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .hint {
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.7;
+    padding: 10px;
+    background: #0d1117;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .status-bar {
+    padding: 6px 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    display: flex;
+    gap: 24px;
+  }
+
+  .status-bar span { color: var(--accent2); }
+
+  .normal-indicator {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .normal-indicator-fill {
+    height: 100%;
+    background: var(--normal-color);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  .mode-indicator {
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .mode-indicator.active {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Площина у просторі</h1>
+  <span>Загальне рівняння Ax + By + Cz + D = 0</span>
+  <div style="margin-left:auto; display:flex; gap:8px; align-items:center">
+    <div class="mode-indicator" id="modeIndicator">ОБЕРТАННЯ</div>
+  </div>
+</header>
+
+<div class="layout">
+  <canvas id="canvas"></canvas>
+
+  <div class="panel">
+    <div>
+      <div class="section-title">Рівняння площини</div>
+      <div class="equation-box" id="equation">Додайте 3 точки</div>
+    </div>
+
+    <div>
+      <div class="section-title">Вектор нормалі n̄</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">A (n_x)</span>
+          <span class="value" id="nA">—</span>
+        </div>
+        <div class="info-item">
+          <span class="label">B (n_y)</span>
+          <span class="value" id="nB">—</span>
+        </div>
+        <div class="info-item">
+          <span class="label">C (n_z)</span>
+          <span class="value" id="nC">—</span>
+        </div>
+        <div class="info-item">
+          <span class="label">|n̄|</span>
+          <span class="value" id="nLen">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Вільний член</div>
+      <div class="info-item" style="grid-column: span 2">
+        <span class="label">D</span>
+        <span class="value" id="nD">—</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title" style="display:flex; justify-content:space-between; align-items:center">
+        <span>Точки (потрібно 3)</span>
+        <span id="pointCount" style="color: var(--accent3); font-size:0.65rem">0 / 3</span>
+      </div>
+      <div class="points-list" id="pointsList">
+        <div style="color: var(--muted); font-size: 0.7rem; padding: 4px 0">Натисніть на сцену щоб додати точку</div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px">
+      <button class="btn" id="btnMode" style="flex:1" onclick="toggleMode()">РЕЖИМ: ОБЕРТАННЯ</button>
+    </div>
+    <button class="btn btn-primary" onclick="clearPoints()">ОЧИСТИТИ</button>
+
+    <div class="hint">
+      <strong style="color: var(--text)">Як це працює:</strong><br>
+      1. Натисніть «РЕЖИМ» → перейдіть в ДОДАВАННЯ<br>
+      2. Клікніть 3 точки на площині XOY<br>
+      3. Площина і вектор нормалі побудуються автоматично<br><br>
+      Обертайте сцену мишею у режимі ОБЕРТАННЯ
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>Камера: ϕ=<span id="sPhi">45°</span> θ=<span id="sTheta">30°</span></div>
+  <div>Масштаб: <span id="sZoom">1.0</span>×</div>
+  <div>Точки: <span id="sPoints">0</span></div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+let phi = 0.6, theta = 0.5, zoom = 1.0;
+let dragging = false, lastX, lastY;
+let addMode = false;
+
+let points = [];
+let plane = null; // {A,B,C,D, normal, center}
+
+function resize() {
+  W = canvas.width = canvas.offsetWidth;
+  H = canvas.height = canvas.offsetHeight;
+  draw();
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+// ─── 3D → 2D projection ───────────────────────────────────────────────────
+function project(x, y, z) {
+  const cosP = Math.cos(phi), sinP = Math.sin(phi);
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+
+  const rx = x * cosP - y * sinP;
+  const ry = x * sinP + y * cosP;
+  const rz = z;
+
+  const ex = rx;
+  const ey = ry * cosT - rz * sinT;
+  const ez = ry * sinT + rz * cosT;
+
+  const scale = zoom * Math.min(W, H) * 0.12;
+  const px = W / 2 + ex * scale;
+  const py = H / 2 - ez * scale;
+  return [px, py, ez];
+}
+
+// ─── Math helpers ──────────────────────────────────────────────────────────
+function cross(a, b) {
+  return [
+    a[1]*b[2] - a[2]*b[1],
+    a[2]*b[0] - a[0]*b[2],
+    a[0]*b[1] - a[1]*b[0]
+  ];
+}
+function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+function len(v) { return Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2); }
+function norm(v) { const l = len(v); return v.map(x => x/l); }
+function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+
+function computePlane(p1, p2, p3) {
+  const v1 = sub(p2, p1);
+  const v2 = sub(p3, p1);
+  const n = cross(v1, v2);
+  const A = n[0], B = n[1], C = n[2];
+  const D = -(A*p1[0] + B*p1[1] + C*p1[2]);
+  const center = [(p1[0]+p2[0]+p3[0])/3, (p1[1]+p2[1]+p3[1])/3, (p1[2]+p2[2]+p3[2])/3];
+  return {A, B, C, D, normal: n, center};
+}
+
+// ─── Drawing ───────────────────────────────────────────────────────────────
+function drawLine(x1,y1,z1, x2,y2,z2, color, width=1, dash=[]) {
+  const [px1,py1] = project(x1,y1,z1);
+  const [px2,py2] = project(x2,y2,z2);
+  ctx.beginPath();
+  ctx.setLineDash(dash);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.moveTo(px1, py1);
+  ctx.lineTo(px2, py2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawArrow(x1,y1,z1, x2,y2,z2, color, width=2) {
+  const [px1,py1] = project(x1,y1,z1);
+  const [px2,py2] = project(x2,y2,z2);
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.moveTo(px1, py1);
+  ctx.lineTo(px2, py2);
+  ctx.stroke();
+  // arrowhead
+  const angle = Math.atan2(py2-py1, px2-px1);
+  const size = 10;
+  ctx.beginPath();
+  ctx.moveTo(px2, py2);
+  ctx.lineTo(px2 - size*Math.cos(angle-0.4), py2 - size*Math.sin(angle-0.4));
+  ctx.lineTo(px2 - size*Math.cos(angle+0.4), py2 - size*Math.sin(angle+0.4));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPoint3D(x, y, z, color, radius=5, label='') {
+  const [px, py] = project(x,y,z);
+  ctx.beginPath();
+  ctx.arc(px, py, radius, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (label) {
+    ctx.font = `bold 12px JetBrains Mono, monospace`;
+    ctx.fillStyle = color;
+    ctx.fillText(label, px+8, py-8);
+  }
+}
+
+function drawAxes() {
+  const len = 4;
+  // X - red
+  drawArrow(-len,0,0, len,0,0, '#ef4444', 1.5);
+  drawText3D(len+0.2,0,0, 'x', '#ef4444');
+  drawLine(-len,0,0, 0,0,0, '#ef444444', 1, [4,4]);
+  // Y - green
+  drawArrow(0,-len,0, 0,len,0, '#4ade80', 1.5);
+  drawText3D(0,len+0.2,0, 'y', '#4ade80');
+  // Z - blue
+  drawArrow(0,0,-len, 0,0,len, '#60a5fa', 1.5);
+  drawText3D(0,0,len+0.2, 'z', '#60a5fa');
+
+  // Origin label
+  drawText3D(0.1,0.1,0.1, 'O', '#64748b');
+}
+
+function drawText3D(x,y,z, text, color) {
+  const [px,py] = project(x,y,z);
+  ctx.font = `12px JetBrains Mono, monospace`;
+  ctx.fillStyle = color;
+  ctx.fillText(text, px, py);
+}
+
+function drawGrid() {
+  const size = 4, step = 1;
+  for (let i = -size; i <= size; i++) {
+    drawLine(i, -size, 0, i, size, 0, '#1e2230', 1);
+    drawLine(-size, i, 0, size, i, 0, '#1e2230', 1);
+  }
+}
+
+function drawPlane(pl) {
+  // Draw filled quad around center
+  const c = pl.center;
+  const n = norm(pl.normal);
+
+  // Find two tangent vectors
+  let t1 = [1,0,0];
+  if (Math.abs(dot(n, t1)) > 0.9) t1 = [0,1,0];
+  const t2n = cross(n, t1);
+  t1 = norm(cross(t2n, n));
+  const t2 = norm(t2n);
+
+  const size = 3.5;
+  const corners = [
+    [c[0]-t1[0]*size-t2[0]*size, c[1]-t1[1]*size-t2[1]*size, c[2]-t1[2]*size-t2[2]*size],
+    [c[0]+t1[0]*size-t2[0]*size, c[1]+t1[1]*size-t2[1]*size, c[2]+t1[2]*size-t2[2]*size],
+    [c[0]+t1[0]*size+t2[0]*size, c[1]+t1[1]*size+t2[1]*size, c[2]+t1[2]*size+t2[2]*size],
+    [c[0]-t1[0]*size+t2[0]*size, c[1]-t1[1]*size+t2[1]*size, c[2]-t1[2]*size+t2[2]*size],
+  ];
+
+  const projected = corners.map(p => project(...p));
+
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(projected[0][0], projected[0][1]);
+  for (let i = 1; i < 4; i++) ctx.lineTo(projected[i][0], projected[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(74,222,128,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(74,222,128,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Normal vector
+  const nLen = 2.5;
+  const nx2 = c[0] + n[0]*nLen;
+  const ny2 = c[1] + n[1]*nLen;
+  const nz2 = c[2] + n[2]*nLen;
+  drawArrow(c[0], c[1], c[2], nx2, ny2, nz2, '#facc15', 3);
+
+  // Label n̄
+  const [px,py] = project(nx2+0.1, ny2+0.1, nz2+0.1);
+  ctx.font = 'bold 14px Cormorant Garamond, serif';
+  ctx.fillStyle = '#facc15';
+  ctx.fillText('n̄', px, py);
+
+  // M0 — foot point on plane
+  drawPoint3D(c[0], c[1], c[2], '#f472b6', 5, 'M₀');
+}
+
+function drawPoints() {
+  points.forEach((p, i) => {
+    drawPoint3D(p[0], p[1], p[2], '#f472b6', 6, `P${i+1}`);
+  });
+
+  // Draw lines between points if 2+
+  if (points.length >= 2) {
+    for (let i = 0; i < points.length-1; i++) {
+      drawLine(...points[i], ...points[i+1], 'rgba(244,114,182,0.4)', 1, [4,4]);
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background grid feel
+  ctx.fillStyle = '#0a0c10';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+  drawAxes();
+
+  if (plane) drawPlane(plane);
+  drawPoints();
+
+  // Status
+  document.getElementById('sPhi').textContent = (phi * 180/Math.PI).toFixed(0) + '°';
+  document.getElementById('sTheta').textContent = (theta * 180/Math.PI).toFixed(0) + '°';
+  document.getElementById('sZoom').textContent = zoom.toFixed(2);
+  document.getElementById('sPoints').textContent = points.length;
+}
+
+// ─── Interaction ───────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown', e => {
+  if (addMode) {
+    addPointAtClick(e);
+  } else {
+    dragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+  phi += dx * 0.01;
+  theta += dy * 0.01;
+  theta = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, theta));
+  lastX = e.clientX;
+  lastY = e.clientY;
+  draw();
+});
+
+canvas.addEventListener('mouseup', () => { dragging = false; });
+canvas.addEventListener('mouseleave', () => { dragging = false; });
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom *= e.deltaY > 0 ? 0.92 : 1.08;
+  zoom = Math.max(0.2, Math.min(5, zoom));
+  draw();
+}, {passive: false});
+
+function addPointAtClick(e) {
+  if (points.length >= 3) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // Unproject click onto XOY plane (z=0)
+  // We need to find x,y such that project(x,y,0) ≈ (mx,my)
+  // Simple grid-based numerical inversion
+  const scale = zoom * Math.min(W, H) * 0.12;
+  const cosP = Math.cos(phi), sinP = Math.sin(phi);
+  const cosT = Math.cos(theta), sinT = Math.sin(theta);
+
+  // On z=0: project gives px = W/2 + (x*cosP - y*sinP)*scale
+  //                        py = H/2 - ((x*sinP + y*cosP)*cosT)*scale
+  // Solve system:
+  const cx = (mx - W/2) / scale;
+  const cy = -(my - H/2) / scale;
+  // cx = x*cosP - y*sinP
+  // cy = (x*sinP + y*cosP)*cosT
+  // from row1: x = (cx + y*sinP)/cosP
+  // sub into row2: cy = ((cx + y*sinP)*sinP/cosP + y*cosP)*cosT
+  // cy/cosT = cx*sinP/cosP + y*sinP²/cosP + y*cosP
+  // cy/cosT = cx*sinP/cosP + y*(sinP²/cosP + cosP)
+  // cy/cosT = cx*sinP/cosP + y/cosP
+  // y = (cy/cosT - cx*sinP/cosP)*cosP = cy*cosP/cosT - cx*sinP
+  const yv = cy*cosP/cosT - cx*sinP;
+  const xv = (cx + yv*sinP)/cosP;
+  // Add random z offset to make non-collinear points more likely
+  const zv = (points.length === 0 ? 0 : (points.length === 1 ? 1.5 : -1));
+
+  const p = [
+    parseFloat(xv.toFixed(2)),
+    parseFloat(yv.toFixed(2)),
+    zv
+  ];
+
+  // Ensure points are not collinear
+  if (points.length === 2) {
+    const v1 = sub(points[1], points[0]);
+    const v2 = sub(p, points[0]);
+    const cr = cross(v1, v2);
+    if (len(cr) < 0.01) {
+      p[2] += 1.5; // force non-collinear
+    }
+  }
+
+  points.push(p);
+  updatePointsUI();
+
+  if (points.length === 3) {
+    plane = computePlane(...points);
+    updateEquationUI(plane);
+    addMode = false;
+    updateModeUI();
+  }
+  draw();
+}
+
+function updatePointsUI() {
+  const list = document.getElementById('pointsList');
+  list.innerHTML = '';
+  points.forEach((p, i) => {
+    const item = document.createElement('div');
+    item.className = 'point-item';
+    item.innerHTML = `
+      <div class="point-dot"></div>
+      <span class="point-coords">P${i+1}(${p[0]}, ${p[1]}, ${p[2]})</span>
+      <button class="btn-remove" onclick="removePoint(${i})">×</button>
+    `;
+    list.appendChild(item);
+  });
+  document.getElementById('pointCount').textContent = `${points.length} / 3`;
+}
+
+function updateEquationUI(pl) {
+  const fmt = v => {
+    const s = parseFloat(v.toFixed(2));
+    return s;
+  };
+  const A = fmt(pl.A), B = fmt(pl.B), C = fmt(pl.C), D = fmt(pl.D);
+
+  function term(coeff, varname, first) {
+    if (coeff === 0) return '';
+    const sign = first ? '' : (coeff > 0 ? ' + ' : ' − ');
+    const abs = Math.abs(coeff);
+    const c = abs === 1 ? '' : abs;
+    return `${sign}<span class="coeff">${abs === 1 ? (first && coeff < 0 ? '−' : '') : (first && coeff < 0 ? '−' : '') + c}</span><span class="var">${varname}</span>`;
+  }
+
+  let eq = '';
+  let first = true;
+  if (A !== 0) { eq += term(A, 'x', first); first = false; }
+  if (B !== 0) { eq += term(B, 'y', first); first = false; }
+  if (C !== 0) { eq += term(C, 'z', first); first = false; }
+  if (D !== 0) {
+    const dsign = first ? '' : (D > 0 ? ' + ' : ' − ');
+    eq += `${dsign}<span class="coeff">${Math.abs(D).toFixed(2)}</span>`;
+  }
+  eq += ' <span class="op">=</span> <span class="coeff">0</span>';
+
+  document.getElementById('equation').innerHTML = eq;
+  document.getElementById('nA').textContent = A.toFixed(3);
+  document.getElementById('nB').textContent = B.toFixed(3);
+  document.getElementById('nC').textContent = C.toFixed(3);
+  document.getElementById('nD').textContent = D.toFixed(3);
+  document.getElementById('nLen').textContent = len(pl.normal).toFixed(3);
+}
+
+function removePoint(i) {
+  points.splice(i, 1);
+  plane = points.length === 3 ? computePlane(...points) : null;
+  if (!plane) {
+    document.getElementById('equation').textContent = 'Додайте 3 точки';
+    document.getElementById('nA').textContent = '—';
+    document.getElementById('nB').textContent = '—';
+    document.getElementById('nC').textContent = '—';
+    document.getElementById('nD').textContent = '—';
+    document.getElementById('nLen').textContent = '—';
+  }
+  updatePointsUI();
+  draw();
+}
+
+function clearPoints() {
+  points = [];
+  plane = null;
+  document.getElementById('equation').textContent = 'Додайте 3 точки';
+  document.getElementById('nA').textContent = '—';
+  document.getElementById('nB').textContent = '—';
+  document.getElementById('nC').textContent = '—';
+  document.getElementById('nD').textContent = '—';
+  document.getElementById('nLen').textContent = '—';
+  updatePointsUI();
+  draw();
+}
+
+function toggleMode() {
+  addMode = !addMode;
+  updateModeUI();
+}
+
+function updateModeUI() {
+  const btn = document.getElementById('btnMode');
+  const ind = document.getElementById('modeIndicator');
+  if (addMode) {
+    btn.textContent = 'РЕЖИМ: ДОДАВАННЯ';
+    btn.style.borderColor = 'var(--accent3)';
+    btn.style.color = 'var(--accent3)';
+    canvas.style.cursor = 'crosshair';
+    ind.textContent = 'ДОДАВАННЯ';
+    ind.className = 'mode-indicator active';
+  } else {
+    btn.textContent = 'РЕЖИМ: ОБЕРТАННЯ';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text)';
+    canvas.style.cursor = 'grab';
+    ind.textContent = 'ОБЕРТАННЯ';
+    ind.className = 'mode-indicator';
+  }
+}
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+}
+animate();
+draw();
+</script>
+</body>
+</html>

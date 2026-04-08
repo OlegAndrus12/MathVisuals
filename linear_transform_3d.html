@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Linear Transformation Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #efefeb;
+    --border: #ddddd6;
+    --text: #1a1a1a;
+    --muted: #8a8a80;
+    --i-color: #1d6fd4;
+    --j-color: #d42b4f;
+    --k-color: #16a34a;
+    --v-color: #6d28d9;
+    --mv-color: #b45309;
+    --accent: #1d6fd4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+
+  header p { font-size: 12px; color: var(--muted); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    flex: 1;
+    min-height: 0;
+    height: calc(100vh - 53px);
+  }
+
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .presets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .preset-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 7px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    text-align: left;
+    letter-spacing: 0.03em;
+  }
+
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(29,111,212,0.05); }
+  .preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(29,111,212,0.08); }
+
+  .vec-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .vec-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+
+  .vec-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .vec-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+  .slider-row:last-child { margin-bottom: 0; }
+
+  .axis-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    width: 12px;
+    color: var(--muted);
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+    transition: transform 0.1s;
+  }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  input[type=range].i-s::-webkit-slider-thumb { background: var(--i-color); }
+  input[type=range].j-s::-webkit-slider-thumb { background: var(--j-color); }
+  input[type=range].k-s::-webkit-slider-thumb { background: var(--k-color); }
+  input[type=range].v-s::-webkit-slider-thumb { background: var(--v-color); }
+
+  .val-out {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    min-width: 36px;
+    text-align: right;
+    color: var(--muted);
+  }
+
+  .matrix-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .mat-table {
+    display: grid;
+    grid-template-columns: 12px repeat(3, 1fr) 12px;
+    gap: 3px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .bracket {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1;
+    text-align: center;
+  }
+
+  .mat-cell {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    padding: 3px 2px;
+    background: var(--surface2);
+    border-radius: 3px;
+    transition: color 0.2s;
+  }
+
+  .mat-cell.col-i { color: var(--i-color); }
+  .mat-cell.col-j { color: var(--j-color); }
+  .mat-cell.col-k { color: var(--k-color); }
+
+  .det-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .det-label { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .det-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    transition: color 0.2s;
+  }
+
+  .det-value.nonzero { color: #16a34a; }
+  .det-value.zero { color: #dc2626; }
+
+  .det-tag {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  .det-tag.invertible { background: rgba(22,163,74,0.1); color: #16a34a; }
+  .det-tag.singular { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+  .custom-vec {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .vec-result {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .vr-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .vr-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  .toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .toggle-btn.on { border-color: var(--accent); color: var(--text); }
+  .tog-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); transition: background 0.15s; }
+  .toggle-btn.on .tog-dot { background: var(--accent); }
+
+  /* Canvas area */
+  .canvas-wrap {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    gap: 10px;
+    position: relative;
+  }
+
+  canvas {
+    flex: 1;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    display: block;
+    cursor: grab;
+  }
+
+  canvas:active { cursor: grabbing; }
+
+  .canvas-footer {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+  }
+
+  .leg-line { width: 16px; height: 2px; border-radius: 1px; }
+
+  .hint {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    opacity: 0.7;
+  }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+    .sidebar { max-height: 55vh; border-right: none; border-bottom: 1px solid var(--border); }
+    canvas { min-height: 320px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>3D LINEAR TRANSFORM EXPLORER</h1>
+  <p>drag canvas to rotate · sliders to change basis vectors î ĵ k̂</p>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div>
+      <p class="section-title">Presets</p>
+      <div class="presets-grid">
+        <button class="preset-btn active" onclick="applyPreset([1,0,0, 0,1,0, 0,0,1],this)">Identity</button>
+        <button class="preset-btn" onclick="applyPreset([2,0,0, 0,2,0, 0,0,2],this)">Scale ×2</button>
+        <button class="preset-btn" onclick="applyPreset([0,-1,0, 1,0,0, 0,0,1],this)">Rot Z 90°</button>
+        <button class="preset-btn" onclick="applyPreset([1,0,0, 0,0,-1, 0,1,0],this)">Rot X 90°</button>
+        <button class="preset-btn" onclick="applyPreset([0,0,1, 0,1,0, -1,0,0],this)">Rot Y 90°</button>
+        <button class="preset-btn" onclick="applyPreset([-1,0,0, 0,1,0, 0,0,1],this)">Reflect X</button>
+        <button class="preset-btn" onclick="applyPreset([1,0,0, 0,-1,0, 0,0,1],this)">Reflect Y</button>
+        <button class="preset-btn" onclick="applyPreset([1,0,0, 0,1,0, 0,0,-1],this)">Reflect Z</button>
+        <button class="preset-btn" onclick="applyPreset([1,1,0, 0,1,0, 0,0,1],this)">Shear XY</button>
+        <button class="preset-btn" onclick="applyPreset([1,0,0, 0,1,0, 1,0,1],this)">Shear ZX</button>
+        <button class="preset-btn" onclick="applyPreset([1,0,0, 0,1,0, 0,0,0],this)">Proj. XY</button>
+        <button class="preset-btn" onclick="applyPreset([0,0,0, 0,0,0, 0,0,0],this)">Collapse</button>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-title">Basis Vectors</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+
+        <div class="vec-section">
+          <div class="vec-header">
+            <div class="vec-dot" style="background:var(--i-color)"></div>
+            <span class="vec-name" style="color:var(--i-color)">î  (col 1)</span>
+          </div>
+          <div class="slider-row"><span class="axis-label">x</span><input type="range" class="i-s" id="ix" min="-2" max="2" step="0.05" value="1"><span class="val-out" id="ix-v">1.00</span></div>
+          <div class="slider-row"><span class="axis-label">y</span><input type="range" class="i-s" id="iy" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="iy-v">0.00</span></div>
+          <div class="slider-row"><span class="axis-label">z</span><input type="range" class="i-s" id="iz" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="iz-v">0.00</span></div>
+        </div>
+
+        <div class="vec-section">
+          <div class="vec-header">
+            <div class="vec-dot" style="background:var(--j-color)"></div>
+            <span class="vec-name" style="color:var(--j-color)">ĵ  (col 2)</span>
+          </div>
+          <div class="slider-row"><span class="axis-label">x</span><input type="range" class="j-s" id="jx" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="jx-v">0.00</span></div>
+          <div class="slider-row"><span class="axis-label">y</span><input type="range" class="j-s" id="jy" min="-2" max="2" step="0.05" value="1"><span class="val-out" id="jy-v">1.00</span></div>
+          <div class="slider-row"><span class="axis-label">z</span><input type="range" class="j-s" id="jz" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="jz-v">0.00</span></div>
+        </div>
+
+        <div class="vec-section">
+          <div class="vec-header">
+            <div class="vec-dot" style="background:var(--k-color)"></div>
+            <span class="vec-name" style="color:var(--k-color)">k̂  (col 3)</span>
+          </div>
+          <div class="slider-row"><span class="axis-label">x</span><input type="range" class="k-s" id="kx" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="kx-v">0.00</span></div>
+          <div class="slider-row"><span class="axis-label">y</span><input type="range" class="k-s" id="ky" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="ky-v">0.00</span></div>
+          <div class="slider-row"><span class="axis-label">z</span><input type="range" class="k-s" id="kz" min="-2" max="2" step="0.05" value="1"><span class="val-out" id="kz-v">1.00</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="matrix-display">
+      <p class="section-title">Transformation Matrix</p>
+      <div class="mat-table" id="mat-table">
+        <span class="bracket">⎡</span><span class="mat-cell col-i" id="m00">1.00</span><span class="mat-cell col-j" id="m01">0.00</span><span class="mat-cell col-k" id="m02">0.00</span><span class="bracket">⎤</span>
+        <span class="bracket">⎢</span><span class="mat-cell col-i" id="m10">0.00</span><span class="mat-cell col-j" id="m11">1.00</span><span class="mat-cell col-k" id="m12">0.00</span><span class="bracket">⎥</span>
+        <span class="bracket">⎣</span><span class="mat-cell col-i" id="m20">0.00</span><span class="mat-cell col-j" id="m21">0.00</span><span class="mat-cell col-k" id="m22">1.00</span><span class="bracket">⎦</span>
+      </div>
+      <div class="det-row">
+        <span class="det-label">det(M)</span>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span class="det-value nonzero" id="det-val">1.00</span>
+          <span class="det-tag invertible" id="det-tag">invertible</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="custom-vec">
+      <p class="section-title">Custom Vector v</p>
+      <div class="slider-row"><span class="axis-label">x</span><input type="range" class="v-s" id="vx" min="-2" max="2" step="0.05" value="1"><span class="val-out" id="vx-v">1.00</span></div>
+      <div class="slider-row"><span class="axis-label">y</span><input type="range" class="v-s" id="vy" min="-2" max="2" step="0.05" value="1"><span class="val-out" id="vy-v">1.00</span></div>
+      <div class="slider-row"><span class="axis-label">z</span><input type="range" class="v-s" id="vz" min="-2" max="2" step="0.05" value="0"><span class="val-out" id="vz-v">0.00</span></div>
+      <div class="vec-result">
+        <div class="vr-item"><div class="vr-dot" style="background:var(--v-color)"></div><span id="v-label">v = (1.00, 1.00, 0.00)</span></div>
+        <div class="vr-item"><div class="vr-dot" style="background:var(--mv-color)"></div><span id="mv-label">Mv = (1.00, 1.00, 0.00)</span></div>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-title">Show / Hide</p>
+      <div class="toggles">
+        <div class="toggle-btn on" id="tog-cube" onclick="toggleLayer('cube')"><div class="tog-dot"></div>unit cube</div>
+        <div class="toggle-btn on" id="tog-axes" onclick="toggleLayer('axes')"><div class="tog-dot"></div>orig axes</div>
+        <div class="toggle-btn on" id="tog-v" onclick="toggleLayer('v')"><div class="tog-dot"></div>vector v</div>
+        <div class="toggle-btn on" id="tog-mv" onclick="toggleLayer('mv')"><div class="tog-dot"></div>vector Mv</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <div class="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div class="canvas-footer">
+      <div class="leg-item"><div class="leg-line" style="background:var(--i-color)"></div>î</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--j-color)"></div>ĵ</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--k-color)"></div>k̂</div>
+      <div class="leg-item"><div class="leg-line" style="background:rgba(0,0,0,0.18)"></div>orig axes</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--v-color)"></div>v</div>
+      <div class="leg-item"><div class="leg-line" style="background:var(--mv-color)"></div>Mv</div>
+      <div class="leg-item"><div class="leg-line" style="background:rgba(0,0,0,0.15);border-top:1px dashed rgba(0,0,0,0.3);height:0"></div>unit cube</div>
+      <span class="hint">drag to rotate · scroll to zoom</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const layers = { cube: true, axes: true, v: true, mv: true };
+
+// Camera state
+let rotX = 0.45, rotY = -0.6, zoom = 1;
+let dragging = false, lastMX = 0, lastMY = 0;
+
+canvas.addEventListener('mousedown', e => { dragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+window.addEventListener('mouseup', () => dragging = false);
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastMX) * 0.008;
+  rotX += (e.clientY - lastMY) * 0.008;
+  rotX = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, rotX));
+  lastMX = e.clientX; lastMY = e.clientY;
+  draw();
+});
+
+canvas.addEventListener('touchstart', e => { dragging = true; lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY; e.preventDefault(); }, { passive: false });
+window.addEventListener('touchend', () => dragging = false);
+window.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  rotY += (e.touches[0].clientX - lastMX) * 0.01;
+  rotX += (e.touches[0].clientY - lastMY) * 0.01;
+  rotX = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, rotX));
+  lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+  draw();
+});
+
+canvas.addEventListener('wheel', e => {
+  zoom *= e.deltaY < 0 ? 1.08 : 0.93;
+  zoom = Math.max(0.3, Math.min(3, zoom));
+  e.preventDefault();
+  draw();
+}, { passive: false });
+
+function gv(id) { return parseFloat(document.getElementById(id).value); }
+
+function getM() {
+  return [
+    gv('ix'), gv('jx'), gv('kx'),
+    gv('iy'), gv('jy'), gv('ky'),
+    gv('iz'), gv('jz'), gv('kz')
+  ];
+}
+
+function mulM(m, v) {
+  return [
+    m[0]*v[0] + m[1]*v[1] + m[2]*v[2],
+    m[3]*v[0] + m[4]*v[1] + m[5]*v[2],
+    m[6]*v[0] + m[7]*v[1] + m[8]*v[2]
+  ];
+}
+
+function det3(m) {
+  return m[0]*(m[4]*m[8]-m[5]*m[7]) - m[1]*(m[3]*m[8]-m[5]*m[6]) + m[2]*(m[3]*m[7]-m[4]*m[6]);
+}
+
+// 3D -> 2D projection (rotate then project)
+function project(x, y, z, cx, cy, unit) {
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  // Rotate around Y
+  const x1 = x * cosY + z * sinY;
+  const z1 = -x * sinY + z * cosY;
+  // Rotate around X
+  const y2 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+  // Perspective
+  const d = 6;
+  const scale = (d / (d + z2)) * unit * zoom;
+  return [cx + x1 * scale, cy - y2 * scale, z2];
+}
+
+function drawLine3D(p1, p2, color, width, dashed) {
+  const [x1, y1] = p1;
+  const [x2, y2] = p2;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  if (dashed) ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawArrow3D(from3, to3, color, width, cx, cy, unit) {
+  const p1 = project(...from3, cx, cy, unit);
+  const p2 = project(...to3, cx, cy, unit);
+  const dx = p2[0]-p1[0], dy = p2[1]-p1[1];
+  const len = Math.sqrt(dx*dx+dy*dy);
+  if (len < 2) return;
+  const ux = dx/len, uy = dy/len;
+  const hw = 7, hl = 12;
+  ctx.save();
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0]-ux*hl, p2[1]-uy*hl); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p2[0], p2[1]);
+  ctx.lineTo(p2[0]-ux*hl-uy*hw, p2[1]-uy*hl+ux*hw);
+  ctx.lineTo(p2[0]-ux*hl+uy*hw, p2[1]-uy*hl-ux*hw);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  return p2;
+}
+
+function label3D(text, pos3, color, cx, cy, unit, ox=8, oy=-6) {
+  const [px, py] = project(...pos3, cx, cy, unit);
+  ctx.save();
+  ctx.font = 'bold 12px Space Mono, monospace';
+  ctx.fillStyle = color;
+  ctx.fillText(text, px + ox, py + oy);
+  ctx.restore();
+}
+
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth;
+  const H = canvas.clientHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  const m = getM();
+  const cx = W / 2, cy = H / 2;
+  const unit = Math.min(W, H) / 5.5;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f5f4f0';
+  ctx.fillRect(0, 0, W, H);
+
+  const P = (x, y, z) => project(x, y, z, cx, cy, unit);
+  const O = [0, 0, 0];
+
+  // Collect all edges for depth sorting
+  const edges = [];
+
+  // Original axes (dashed)
+  if (layers.axes) {
+    const axLen = 2.2;
+    const origAxes = [
+      { p1: [-axLen,0,0], p2: [axLen,0,0], color: 'rgba(0,0,0,0.15)', w: 1, dash: true },
+      { p1: [0,-axLen,0], p2: [0,axLen,0], color: 'rgba(0,0,0,0.15)', w: 1, dash: true },
+      { p1: [0,0,-axLen], p2: [0,0,axLen], color: 'rgba(0,0,0,0.15)', w: 1, dash: true },
+    ];
+    origAxes.forEach(e => {
+      const mid = [(e.p1[0]+e.p2[0])/2,(e.p1[1]+e.p2[1])/2,(e.p1[2]+e.p2[2])/2];
+      edges.push({ ...e, z: P(...mid)[2] });
+    });
+  }
+
+  // Transformed unit cube
+  if (layers.cube) {
+    const verts = [[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[1,0,1],[0,1,1],[1,1,1]];
+    const tv = verts.map(v => mulM(m, v));
+    const cubeEdges = [
+      [0,1],[0,2],[0,3],[1,4],[1,5],[2,4],[2,6],[3,5],[3,6],[4,7],[5,7],[6,7]
+    ];
+    cubeEdges.forEach(([a,b]) => {
+      const mid = [(tv[a][0]+tv[b][0])/2,(tv[a][1]+tv[b][1])/2,(tv[a][2]+tv[b][2])/2];
+      edges.push({ p1: tv[a], p2: tv[b], color: 'rgba(0,0,0,0.18)', w: 1, dash: true, z: P(...mid)[2] });
+    });
+  }
+
+  // Sort edges by depth (back to front)
+  edges.sort((a, b) => a.z - b.z);
+  edges.forEach(e => {
+    drawLine3D(P(...e.p1), P(...e.p2), e.color, e.w, e.dash || false);
+  });
+
+  // Basis vectors
+  const basis = [
+    { from: O, to: [m[0], m[3], m[6]], color: '#1d6fd4', label: 'î' },
+    { from: O, to: [m[1], m[4], m[7]], color: '#d42b4f', label: 'ĵ' },
+    { from: O, to: [m[2], m[5], m[8]], color: '#16a34a', label: 'k̂' },
+  ];
+
+  basis.forEach(b => {
+    const tip = drawArrow3D(b.from, b.to, b.color, 2.5, cx, cy, unit);
+    if (tip) {
+      ctx.save();
+      ctx.font = 'bold 12px Space Mono, monospace';
+      ctx.fillStyle = b.color;
+      ctx.fillText(b.label, tip[0] + 7, tip[1] - 5);
+      ctx.restore();
+    }
+  });
+
+  // Custom vectors
+  const vx = gv('vx'), vy = gv('vy'), vz = gv('vz');
+  const [tvx, tvy, tvz] = mulM(m, [vx, vy, vz]);
+
+  if (layers.v) {
+    const tip = drawArrow3D(O, [vx, vy, vz], '#6d28d9', 2, cx, cy, unit);
+    if (tip) { ctx.save(); ctx.font = '11px Space Mono, monospace'; ctx.fillStyle = '#6d28d9'; ctx.fillText('v', tip[0]+6, tip[1]-5); ctx.restore(); }
+  }
+  if (layers.mv) {
+    const tip = drawArrow3D(O, [tvx, tvy, tvz], '#b45309', 2.5, cx, cy, unit);
+    if (tip) { ctx.save(); ctx.font = '11px Space Mono, monospace'; ctx.fillStyle = '#b45309'; ctx.fillText('Mv', tip[0]+6, tip[1]-5); ctx.restore(); }
+  }
+
+  // Origin dot
+  const [opx, opy] = P(0, 0, 0);
+  ctx.beginPath(); ctx.arc(opx, opy, 3.5, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fill();
+
+  // Axis labels x/y/z
+  if (layers.axes) {
+    const axLen = 2.2;
+    [['x',axLen,0,0,'rgba(0,0,0,0.3)'],['y',0,axLen,0,'rgba(0,0,0,0.3)'],['z',0,0,axLen,'rgba(0,0,0,0.3)']].forEach(([l,x,y,z,c]) => {
+      const [px,py] = P(x,y,z);
+      ctx.save(); ctx.font = '10px Space Mono, monospace'; ctx.fillStyle = c;
+      ctx.fillText(l, px+4, py-4); ctx.restore();
+    });
+  }
+}
+
+function updateUI() {
+  const ids = ['ix','iy','iz','jx','jy','jz','kx','ky','kz','vx','vy','vz'];
+  ids.forEach(id => { document.getElementById(id+'-v').textContent = gv(id).toFixed(2); });
+
+  const m = getM();
+  document.getElementById('m00').textContent = m[0].toFixed(2);
+  document.getElementById('m10').textContent = m[3].toFixed(2);
+  document.getElementById('m20').textContent = m[6].toFixed(2);
+  document.getElementById('m01').textContent = m[1].toFixed(2);
+  document.getElementById('m11').textContent = m[4].toFixed(2);
+  document.getElementById('m21').textContent = m[7].toFixed(2);
+  document.getElementById('m02').textContent = m[2].toFixed(2);
+  document.getElementById('m12').textContent = m[5].toFixed(2);
+  document.getElementById('m22').textContent = m[8].toFixed(2);
+
+  const d = det3(m);
+  const detEl = document.getElementById('det-val');
+  const tagEl = document.getElementById('det-tag');
+  detEl.textContent = d.toFixed(2);
+  const sing = Math.abs(d) < 0.01;
+  detEl.className = 'det-value ' + (sing ? 'zero' : 'nonzero');
+  tagEl.textContent = sing ? 'singular' : 'invertible';
+  tagEl.className = 'det-tag ' + (sing ? 'singular' : 'invertible');
+
+  const vx = gv('vx'), vy = gv('vy'), vz = gv('vz');
+  const [tvx, tvy, tvz] = mulM(m, [vx, vy, vz]);
+  document.getElementById('v-label').textContent = `v = (${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)})`;
+  document.getElementById('mv-label').textContent = `Mv = (${tvx.toFixed(2)}, ${tvy.toFixed(2)}, ${tvz.toFixed(2)})`;
+}
+
+function applyPreset(vals, btn) {
+  const ids = ['ix','iy','iz','jx','jy','jz','kx','ky','kz'];
+  ids.forEach((id, i) => { document.getElementById(id).value = vals[i]; });
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  updateUI(); draw();
+}
+
+function toggleLayer(key) {
+  layers[key] = !layers[key];
+  document.getElementById('tog-' + key).classList.toggle('on', layers[key]);
+  draw();
+}
+
+const allSliders = ['ix','iy','iz','jx','jy','jz','kx','ky','kz','vx','vy','vz'];
+allSliders.forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    updateUI(); draw();
+  });
+});
+
+window.addEventListener('resize', draw);
+updateUI();
+draw();
+</script>
+</body>
+</html>

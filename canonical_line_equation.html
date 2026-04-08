@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Канонічне рівняння прямої</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f5f2eb;
+  --surface:#edeade;
+  --surface2:#e4e0d5;
+  --border:#ccc8bb;
+  --border2:#b8b4a6;
+  --text:#1a1a14;
+  --muted:#7a7868;
+  --dim:#a8a496;
+  --ink:#2a2820;
+  --teal:#0a6e5c;
+  --teal-dim:rgba(10,110,92,0.1);
+  --coral:#c94030;
+  --coral-dim:rgba(201,64,48,0.08);
+  --gold:#8a6c10;
+  --gold-dim:rgba(138,108,16,0.1);
+  --blue:#1a4a7a;
+  --serif:'Cormorant Garamond',serif;
+  --mono:'JetBrains Mono',monospace;
+}
+
+html,body{height:100%;overflow:hidden}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  font-size:13px;
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+
+header{
+  padding:14px 28px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:16px;
+  background:var(--surface);
+  flex-shrink:0;
+}
+
+.h-left{display:flex;align-items:baseline;gap:18px}
+header h1{
+  font-family:var(--serif);
+  font-weight:500;
+  font-size:21px;
+  color:var(--ink);
+  letter-spacing:-0.01em;
+}
+.h-sub{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+
+.h-formula{
+  font-family:var(--serif);
+  font-style:italic;
+  font-size:19px;
+  color:var(--teal);
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  gap:0;
+  overflow-y:auto;
+}
+
+.sb-section{
+  padding:16px 18px;
+  border-bottom:1px solid var(--border);
+}
+
+.sb-lbl{
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+
+/* input mode tabs */
+.tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.tab{
+  flex:1;padding:7px 4px;text-align:center;font-size:11px;font-family:var(--mono);
+  background:transparent;border:none;color:var(--muted);cursor:pointer;
+  transition:all .15s;letter-spacing:.02em;
+  border-right:1px solid var(--border);
+}
+.tab:last-child{border-right:none}
+.tab.active{background:var(--bg);color:var(--ink);font-weight:500}
+
+/* coords display */
+.coord-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.coord-field label{
+  display:block;font-size:11px;color:var(--muted);margin-bottom:3px
+}
+.coord-field input{
+  width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:5px;padding:6px 9px;color:var(--ink);font-family:var(--mono);
+  font-size:13px;outline:none;transition:border-color .15s;
+}
+.coord-field input:focus{border-color:var(--teal)}
+
+/* object rows */
+.obj-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 0;border-bottom:1px solid var(--border);
+}
+.obj-row:last-child{border-bottom:none}
+.obj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.obj-lbl{font-size:12px;color:var(--muted);min-width:72px}
+.obj-val{font-size:12px;color:var(--ink);font-weight:500;letter-spacing:.01em}
+
+/* equation box */
+.eq-box{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:14px 16px;
+}
+.eq-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.eq-main{
+  font-family:var(--serif);font-style:italic;font-size:22px;
+  color:var(--teal);text-align:center;min-height:38px;
+  display:flex;align-items:center;justify-content:center;
+  letter-spacing:.01em;line-height:1.3;
+}
+.eq-sep{height:1px;background:var(--border);margin:10px 0}
+.eq-param{font-size:12px;color:var(--muted);line-height:2}
+.eq-param span{color:var(--ink);font-weight:500}
+
+/* derivation */
+.deriv-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:7px 0;border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--muted);gap:8px;
+}
+.deriv-row:last-child{border-bottom:none}
+.deriv-row .dval{color:var(--ink);font-weight:500;text-align:right;font-size:12px}
+.deriv-row .dval.hi{color:var(--teal)}
+
+/* special case badge */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:5px;font-size:11px;
+  background:var(--gold-dim);color:var(--gold);border:1px solid rgba(138,108,16,.2);
+}
+
+/* hint box */
+.hint{
+  background:var(--teal-dim);border-left:2px solid var(--teal);
+  border-radius:0 6px 6px 0;padding:10px 13px;
+  font-size:12px;color:var(--muted);line-height:1.8;
+}
+.hint strong{color:var(--teal)}
+
+/* canvas */
+.cplane{
+  position:relative;overflow:hidden;cursor:crosshair;
+  background:var(--bg);
+}
+canvas{display:block;width:100%;height:100%}
+
+.c-overlay{
+  position:absolute;bottom:14px;right:14px;
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end;
+}
+.c-tag{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;padding:3px 9px;font-size:11px;color:var(--muted);
+}
+.c-tag span{color:var(--ink)}
+
+.zbtn{
+  width:28px;height:28px;background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;color:var(--muted);font-size:15px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.zbtn:hover{border-color:var(--teal);color:var(--teal)}
+.zrow{display:flex;gap:4px}
+
+/* mode instruction */
+.mode-hint{
+  position:absolute;top:14px;left:14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  padding:7px 12px;font-size:11px;color:var(--muted);pointer-events:none;
+  transition:opacity .3s;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-left">
+    <h1>Канонічне рівняння прямої</h1>
+    <span class="h-sub">Інтерактивна побудова</span>
+  </div>
+  <div class="h-formula" id="hf">—</div>
+</header>
+
+<div class="layout">
+  <div class="sidebar">
+
+    <!-- mode -->
+    <div class="sb-section">
+      <div class="sb-lbl">Спосіб задання</div>
+      <div class="tabs">
+        <button class="tab active" id="t-click" onclick="setInputMode('click')">Клік на площині</button>
+        <button class="tab" id="t-manual" onclick="setInputMode('manual')">Вручну</button>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.8" id="mode-tip">
+        Клікніть на площині, щоб поставити <strong style="color:var(--ink)">точку M₀</strong>,<br>
+        потім клікніть ще раз для другої точки <strong style="color:var(--ink)">M₁</strong>.
+      </div>
+    </div>
+
+    <!-- manual inputs -->
+    <div class="sb-section" id="manual-section" style="display:none">
+      <div class="sb-lbl">Точка M₀</div>
+      <div class="coord-grid" style="margin-bottom:12px">
+        <div class="coord-field"><label>x₀</label><input type="number" id="ix0" value="1" step="0.5" oninput="fromManual()"></div>
+        <div class="coord-field"><label>y₀</label><input type="number" id="iy0" value="1" step="0.5" oninput="fromManual()"></div>
+      </div>
+      <div class="sb-lbl">Точка M₁ (для вектора)</div>
+      <div class="coord-grid">
+        <div class="coord-field"><label>x₁</label><input type="number" id="ix1" value="3" step="0.5" oninput="fromManual()"></div>
+        <div class="coord-field"><label>y₁</label><input type="number" id="iy1" value="2" step="0.5" oninput="fromManual()"></div>
+      </div>
+    </div>
+
+    <!-- objects -->
+    <div class="sb-section">
+      <div class="sb-lbl">Об'єкти</div>
+      <div>
+        <div class="obj-row">
+          <div class="obj-dot" style="background:#c94030"></div>
+          <div class="obj-lbl">Точка M₀</div>
+          <div class="obj-val" id="disp-m0">—</div>
+        </div>
+        <div class="obj-row">
+          <div class="obj-dot" style="background:#c94030;opacity:.5"></div>
+          <div class="obj-lbl">Точка M₁</div>
+          <div class="obj-val" id="disp-m1">—</div>
+        </div>
+        <div class="obj-row">
+          <div class="obj-dot" style="background:#1a4a7a"></div>
+          <div class="obj-lbl">Вектор d⃗</div>
+          <div class="obj-val" id="disp-d">—</div>
+        </div>
+        <div class="obj-row">
+          <div class="obj-dot" style="background:#0a6e5c"></div>
+          <div class="obj-lbl">Пряма L</div>
+          <div class="obj-val" id="disp-l" style="color:var(--teal)">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- equation -->
+    <div class="sb-section">
+      <div class="eq-box">
+        <div class="eq-title">Канонічне рівняння</div>
+        <div class="eq-main" id="eq-main">—</div>
+        <div class="eq-sep"></div>
+        <div class="eq-param" id="eq-param">Задайте пряму на площині</div>
+      </div>
+      <div id="special-badge" style="margin-top:10px;display:none"></div>
+    </div>
+
+    <!-- derivation -->
+    <div class="sb-section">
+      <div class="sb-lbl">Розклад</div>
+      <div id="deriv">
+        <div class="deriv-row" style="color:var(--dim)">Задайте пряму</div>
+      </div>
+    </div>
+
+    <!-- hint -->
+    <div class="sb-section">
+      <div class="hint" id="hint">
+        <strong>d⃗</strong> — напрямний вектор прямої.<br>
+        Він колінеарний (паралельний) прямій і будується автоматично як M₀M₁.
+      </div>
+    </div>
+
+  </div>
+
+  <div class="cplane" id="cplane">
+    <canvas id="cv"></canvas>
+    <div class="mode-hint" id="mode-hint">1-й клік — точка M₀ · 2-й клік — точка M₁</div>
+    <div class="c-overlay">
+      <div class="zrow">
+        <button class="zbtn" onclick="zoom(1.2)">+</button>
+        <button class="zbtn" onclick="zoom(0.83)">−</button>
+        <button class="zbtn" onclick="resetView()">⌂</button>
+      </div>
+      <div class="c-tag">x: <span id="mx">0</span>  y: <span id="my">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const plane = document.getElementById('cplane');
+
+let view = { scale: 55, ox: 0, oy: 0 };
+let state = { m0: null, m1: null };
+let inputMode = 'click';
+let clickStep = 0; // 0=waiting m0, 1=waiting m1
+let isPan = false, panStart = null, viewStart = null;
+let animFrame = null;
+let hoverPt = null; // live preview while placing m1
+
+function setInputMode(m) {
+  inputMode = m;
+  document.getElementById('t-click').classList.toggle('active', m === 'click');
+  document.getElementById('t-manual').classList.toggle('active', m === 'manual');
+  document.getElementById('manual-section').style.display = m === 'manual' ? 'block' : 'none';
+  document.getElementById('mode-hint').style.opacity = m === 'click' ? '1' : '0';
+  document.getElementById('mode-tip').style.display = m === 'click' ? 'block' : 'none';
+  if (m === 'manual') { fromManual(); }
+}
+
+function fromManual() {
+  const x0 = parseFloat(document.getElementById('ix0').value);
+  const y0 = parseFloat(document.getElementById('iy0').value);
+  const x1 = parseFloat(document.getElementById('ix1').value);
+  const y1 = parseFloat(document.getElementById('iy1').value);
+  if (!isNaN(x0) && !isNaN(y0)) state.m0 = [x0, y0];
+  if (!isNaN(x1) && !isNaN(y1)) state.m1 = [x1, y1];
+  upd();
+}
+
+function toS(gx, gy) { return [view.ox + gx * view.scale, view.oy - gy * view.scale]; }
+function toG(sx, sy) { return [(sx - view.ox) / view.scale, (view.oy - sy) / view.scale]; }
+function snap(v) { return Math.round(v * 4) / 4; }
+function fmt(v) {
+  const r = Math.round(v * 100) / 100;
+  return r % 1 === 0 ? String(r) : r.toFixed(2);
+}
+
+function resetView() {
+  const W = plane.clientWidth, H = plane.clientHeight;
+  view.ox = W / 2; view.oy = H / 2; view.scale = 55;
+  draw();
+}
+function zoom(f) {
+  const W = plane.clientWidth, H = plane.clientHeight;
+  const cx = W / 2, cy = H / 2;
+  view.ox = cx + (view.ox - cx) * f;
+  view.oy = cy + (view.oy - cy) * f;
+  view.scale *= f;
+  draw();
+}
+
+/* ── BUILD EQUATION ── */
+function buildCanonical(x0, y0, l, m) {
+  // (x - x0)/l = (y - y0)/m
+  // special cases handled separately
+  function fmtC(v) {
+    const r = Math.round(v * 100) / 100;
+    if (r === 0) return '0';
+    return r % 1 === 0 ? String(r) : r.toFixed(2);
+  }
+  function partX(x0, l) {
+    const sub = x0 === 0 ? 'x' : x0 > 0 ? `(x − ${fmtC(x0)})` : `(x + ${fmtC(-x0)})`;
+    return `${sub} / ${fmtC(l)}`;
+  }
+  function partY(y0, m) {
+    const sub = y0 === 0 ? 'y' : y0 > 0 ? `(y − ${fmtC(y0)})` : `(y + ${fmtC(-y0)})`;
+    return `${sub} / ${fmtC(m)}`;
+  }
+  if (Math.abs(l) < 1e-9 && Math.abs(m) < 1e-9) return null;
+  if (Math.abs(l) < 1e-9) return { eq: `x = ${fmtC(x0)}`, special: 'вертикальна (l = 0)' };
+  if (Math.abs(m) < 1e-9) return { eq: `y = ${fmtC(y0)}`, special: 'горизонтальна (m = 0)' };
+  return { eq: `${partX(x0, l)} = ${partY(y0, m)}`, special: null };
+}
+
+function upd() {
+  const { m0, m1 } = state;
+
+  document.getElementById('disp-m0').textContent = m0 ? `(${fmt(m0[0])}, ${fmt(m0[1])})` : '—';
+  document.getElementById('disp-m1').textContent = m1 ? `(${fmt(m1[0])}, ${fmt(m1[1])})` : '—';
+
+  if (!m0 || !m1) {
+    document.getElementById('disp-d').textContent = '—';
+    document.getElementById('disp-l').textContent = '—';
+    document.getElementById('eq-main').textContent = '—';
+    document.getElementById('eq-param').textContent = 'Задайте пряму на площині';
+    document.getElementById('hf').textContent = '—';
+    document.getElementById('deriv').innerHTML = '<div class="deriv-row" style="color:var(--dim)">Задайте пряму</div>';
+    document.getElementById('special-badge').style.display = 'none';
+    draw(); return;
+  }
+
+  const l = m1[0] - m0[0];
+  const m = m1[1] - m0[1];
+  const dlen = Math.hypot(l, m);
+
+  document.getElementById('disp-d').textContent = `(${fmt(l)}, ${fmt(m)})`;
+  document.getElementById('disp-l').textContent = dlen < 1e-9 ? 'точки збігаються' : 'побудована';
+
+  if (dlen < 1e-9) {
+    document.getElementById('eq-main').textContent = 'M₀ = M₁';
+    document.getElementById('eq-param').textContent = 'Оберіть різні точки';
+    document.getElementById('hf').textContent = '—';
+    draw(); return;
+  }
+
+  const res = buildCanonical(m0[0], m0[1], l, m);
+  document.getElementById('eq-main').textContent = res.eq;
+  document.getElementById('hf').textContent = res.eq;
+
+  const badge = document.getElementById('special-badge');
+  if (res.special) {
+    badge.style.display = 'block';
+    badge.innerHTML = `<div class="badge">⚠ ${res.special} — запис спрощується</div>`;
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // param breakdown
+  document.getElementById('eq-param').innerHTML =
+    `d⃗ = (<span style="color:var(--teal)">l</span>, <span style="color:var(--teal)">m</span>) = (${fmt(l)}, ${fmt(m)})<br>` +
+    `|d⃗| = ${fmt(dlen)}<br>` +
+    `M₀ = (${fmt(m0[0])}, ${fmt(m0[1])})`;
+
+  // derivation
+  const kStr = Math.abs(m) > 1e-9 ? fmt(l / m) : '∞';
+  document.getElementById('deriv').innerHTML = `
+    <div class="deriv-row">M₀M₁ = d⃗ <span class="dval hi">(${fmt(l)}, ${fmt(m)})</span></div>
+    <div class="deriv-row">Умова: M₀M ∥ d⃗ <span class="dval">det = 0</span></div>
+    <div class="deriv-row">⇒ (x−x₀)/l = (y−y₀)/m <span class="dval hi">канонічне</span></div>
+    <div class="deriv-row">|d⃗| <span class="dval">${fmt(dlen)}</span></div>
+    <div class="deriv-row">Нахил k = l/m <span class="dval">${kStr}</span></div>
+  `;
+
+  draw();
+}
+
+/* ── DRAW ── */
+function draw() {
+  const dpr = devicePixelRatio;
+  const W = plane.clientWidth, H = plane.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
+  if (!view.ox) { view.ox = W / 2; view.oy = H / 2; }
+
+  // background — subtle grid paper feel
+  ctx.fillStyle = '#f5f2eb';
+  ctx.fillRect(0, 0, W, H);
+
+  const sc = view.scale;
+
+  // minor grid
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+  ctx.lineWidth = 0.5;
+  const sx0 = ((view.ox % sc) + sc) % sc;
+  const sy0 = ((view.oy % sc) + sc) % sc;
+  for (let x = sx0; x < W; x += sc) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = sy0; y < H; y += sc) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  // axes
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, view.oy); ctx.lineTo(W, view.oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(view.ox, 0); ctx.lineTo(view.ox, H); ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.font = '10px JetBrains Mono, monospace';
+  const tstep = sc < 22 ? 5 : sc < 44 ? 2 : 1;
+  const gx0 = Math.ceil(-view.ox / sc / tstep) * tstep;
+  const gx1 = Math.floor((W - view.ox) / sc / tstep) * tstep;
+  ctx.textAlign = 'center';
+  for (let g = gx0; g <= gx1; g += tstep) {
+    if (g === 0) continue;
+    ctx.fillText(g, view.ox + g * sc, view.oy + 14);
+  }
+  ctx.textAlign = 'right';
+  const gy0 = Math.ceil((view.oy - H) / sc / tstep) * tstep;
+  const gy1 = Math.floor(view.oy / sc / tstep) * tstep;
+  for (let g = gy0; g <= gy1; g += tstep) {
+    if (g === 0) continue;
+    ctx.fillText(g, view.ox - 7, view.oy - g * sc + 4);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillText('x', W - 12, view.oy - 7);
+  ctx.textAlign = 'center';
+  ctx.fillText('y', view.ox + 10, 14);
+
+  const { m0, m1 } = state;
+
+  // hover preview (ghost m1)
+  const eff_m1 = m1 || (m0 && hoverPt && clickStep === 1 ? hoverPt : null);
+
+  // draw line if both points
+  if (m0 && eff_m1) {
+    const l = eff_m1[0] - m0[0], m = eff_m1[1] - m0[1];
+    const dlen = Math.hypot(l, m);
+    if (dlen > 1e-9) {
+      // extend line across canvas
+      const isGhost = !m1;
+      const [osx, osy] = toS(m0[0], m0[1]);
+      const far = Math.max(W, H) * 3;
+      const ex = l / dlen, ey = -m / dlen; // screen direction
+      ctx.save();
+      ctx.strokeStyle = isGhost ? 'rgba(10,110,92,0.35)' : '#0a6e5c';
+      ctx.lineWidth = isGhost ? 1.5 : 2.2;
+      ctx.setLineDash(isGhost ? [6, 4] : []);
+      ctx.shadowColor = isGhost ? 'transparent' : 'rgba(10,110,92,0.2)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(osx - ex * far, osy - ey * far);
+      ctx.lineTo(osx + ex * far, osy + ey * far);
+      ctx.stroke();
+      ctx.restore();
+
+      // direction vector — offset from M₀ along the line so it reads as
+      // a free parallel vector, not the segment M₀M₁
+      const perpX = -ey, perpY = ex; // screen-space perpendicular to line
+      const vs = Math.min(dlen * sc, 90); // arrow length in px, capped
+      // start the vector one unit offset to the side of M₀
+      const offsetPx = 28;
+      const vsx = osx + perpX * offsetPx, vsy = osy + perpY * offsetPx;
+      const vex = vsx + ex * vs,          vey = vsy + ey * vs;
+      if (!isGhost) {
+        ctx.save();
+        ctx.strokeStyle = '#1a4a7a'; ctx.fillStyle = '#1a4a7a';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([]);
+        ctx.shadowColor = 'rgba(26,74,122,0.3)'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.moveTo(vsx, vsy); ctx.lineTo(vex, vey); ctx.stroke();
+        const ang = Math.atan2(vey - vsy, vex - vsx);
+        const al = 11;
+        ctx.beginPath();
+        ctx.moveTo(vex, vey);
+        ctx.lineTo(vex - al * Math.cos(ang - 0.36), vey - al * Math.sin(ang - 0.36));
+        ctx.lineTo(vex - al * Math.cos(ang + 0.36), vey - al * Math.sin(ang + 0.36));
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+
+        // thin dashed line from M₀ to vector start — shows it's the same direction
+        ctx.save();
+        ctx.strokeStyle = 'rgba(26,74,122,0.25)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(osx, osy); ctx.lineTo(vsx, vsy); ctx.stroke();
+        ctx.restore();
+
+        // d label — beside the midpoint of the arrow
+        const midX = (vsx + vex) / 2, midY = (vsy + vey) / 2;
+        ctx.fillStyle = '#1a4a7a';
+        ctx.font = '500 13px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`d⃗(${fmt(l)}, ${fmt(m)})`, midX + perpX * 20, midY + perpY * 20 + 4);
+
+        // collinearity tick marks on line
+        for (let t = -4; t <= 4; t++) {
+          if (t === 0) continue;
+          const tx = osx + ex * sc * t, ty = osy + ey * sc * t;
+          ctx.save();
+          ctx.strokeStyle = 'rgba(10,110,92,0.22)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(tx - perpX * 5, ty - perpY * 5);
+          ctx.lineTo(tx + perpX * 5, ty + perpY * 5);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // parameter labels beside line
+        ctx.fillStyle = 'rgba(10,110,92,0.45)';
+        ctx.font = '10px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        const tlx  = osx + ex * sc *  2 + perpX * 16, tly  = osy + ey * sc *  2 + perpY * 16;
+        const tlx2 = osx + ex * sc * -2 + perpX * 16, tly2 = osy + ey * sc * -2 + perpY * 16;
+        ctx.fillText('t = 2',  tlx,  tly  + 4);
+        ctx.fillText('t = −2', tlx2, tly2 + 4);
+      }
+
+      // m1 dot
+      const [m1sx, m1sy] = toS(eff_m1[0], eff_m1[1]);
+      ctx.beginPath();
+      ctx.arc(m1sx, m1sy, isGhost ? 4 : 5, 0, Math.PI * 2);
+      ctx.fillStyle = isGhost ? 'rgba(201,64,48,0.4)' : 'rgba(201,64,48,0.7)';
+      ctx.fill();
+      if (!isGhost) {
+        ctx.fillStyle = '#c94030';
+        ctx.font = '12px JetBrains Mono, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`M₁(${fmt(eff_m1[0])}, ${fmt(eff_m1[1])})`, m1sx + 9, m1sy - 7);
+      }
+    }
+  }
+
+  // m0 dot
+  if (m0) {
+    const [osx, osy] = toS(m0[0], m0[1]);
+    ctx.beginPath();
+    ctx.arc(osx, osy, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#c94030';
+    ctx.shadowColor = 'rgba(201,64,48,0.4)'; ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#c94030';
+    ctx.font = '500 12px JetBrains Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`M₀(${fmt(m0[0])}, ${fmt(m0[1])})`, osx + 10, osy - 8);
+  }
+}
+
+/* ── EVENTS ── */
+cv.addEventListener('click', e => {
+  if (inputMode !== 'click') return;
+  const r = cv.getBoundingClientRect();
+  const [gx, gy] = toG(e.clientX - r.left, e.clientY - r.top).map
+    ? [snap(toG(e.clientX - r.left, e.clientY - r.top)[0]), snap(toG(e.clientX - r.left, e.clientY - r.top)[1])]
+    : [0, 0];
+  const raw = toG(e.clientX - r.left, e.clientY - r.top);
+  const pt = [snap(raw[0]), snap(raw[1])];
+
+  if (clickStep === 0) {
+    state.m0 = pt; state.m1 = null;
+    clickStep = 1;
+    document.getElementById('mode-hint').textContent = '2-й клік — точка M₁ · ПКМ або клік ще раз для скидання';
+  } else {
+    if (Math.hypot(pt[0] - state.m0[0], pt[1] - state.m0[1]) < 0.3) {
+      // same point — reset
+      state.m0 = null; state.m1 = null; clickStep = 0;
+      document.getElementById('mode-hint').textContent = '1-й клік — точка M₀ · 2-й клік — точка M₁';
+    } else {
+      state.m1 = pt;
+      clickStep = 0;
+      document.getElementById('mode-hint').textContent = 'Клікніть, щоб почати заново';
+      setTimeout(() => {
+        if (clickStep === 0)
+          document.getElementById('mode-hint').textContent = '1-й клік — точка M₀ · 2-й клік — точка M₁';
+      }, 2000);
+    }
+  }
+  upd();
+});
+
+cv.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (inputMode !== 'click') return;
+  state.m0 = null; state.m1 = null; clickStep = 0;
+  hoverPt = null;
+  document.getElementById('mode-hint').textContent = '1-й клік — точка M₀ · 2-й клік — точка M₁';
+  upd();
+});
+
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  const raw = toG(e.clientX - r.left, e.clientY - r.top);
+
+  if (isPan && panStart) {
+    view.ox = viewStart.ox + (e.clientX - r.left) - panStart[0];
+    view.oy = viewStart.oy + (e.clientY - r.top) - panStart[1];
+    draw(); return;
+  }
+
+  document.getElementById('mx').textContent = fmt(snap(raw[0]));
+  document.getElementById('my').textContent = fmt(snap(raw[1]));
+
+  if (inputMode === 'click' && clickStep === 1 && state.m0) {
+    hoverPt = [snap(raw[0]), snap(raw[1])];
+    draw();
+  }
+});
+
+cv.addEventListener('mousedown', e => {
+  if (e.button === 1 || e.altKey) {
+    isPan = true;
+    const r = cv.getBoundingClientRect();
+    panStart = [e.clientX - r.left, e.clientY - r.top];
+    viewStart = { ox: view.ox, oy: view.oy };
+    e.preventDefault();
+  }
+});
+
+cv.addEventListener('mouseup', () => { isPan = false; panStart = null; });
+cv.addEventListener('mouseleave', () => { hoverPt = null; if (!state.m1) draw(); });
+
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const f = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  view.ox = mx + (view.ox - mx) * f;
+  view.oy = my + (view.oy - my) * f;
+  view.scale *= f;
+  draw();
+}, { passive: false });
+
+window.addEventListener('resize', draw);
+
+setTimeout(() => {
+  const W = plane.clientWidth, H = plane.clientHeight;
+  view.ox = W / 2; view.oy = H / 2;
+  // default example
+  state.m0 = [1, 1]; state.m1 = [3, 2];
+  clickStep = 0;
+  upd();
+}, 60);
+</script>
+</body>
+</html>
