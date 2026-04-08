@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cache lesson</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #fafafa;
+      color: #222;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 { margin-bottom: 10px; }
+
+    .controls {
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      font-family: monospace;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: white;
+      font-size: 14px;
+    }
+
+    button:hover {
+      cursor: pointer;
+      background: #eaeaea;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 800px;
+      font-size: 14px;
+      margin-top: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #f2f2f2;
+      font-weight: bold;
+    }
+
+    tr:nth-child(even) td { background: #fcfcfc; }
+    tr:nth-child(odd) td { background: #ffffff; }
+
+    tr:hover td {
+      background: #e6e4b1;
+    }
+
+    .bin {
+      color: #008000;       /* green */
+      font-weight: bold;
+    }
+
+    .hex {
+      color: #0066cc;       /* blue */
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Let's say this is cache</h1>
+
+<div class="controls">
+  Memory size:
+  <input type="number" id="size" value="16" min="1" max="4096">
+  <button onclick="initMemory()">Initialize</button>
+</div>
+
+<table id="memtable">
+  <tr>
+    <th>Address (hex)</th>
+    <th>Address (bin)</th>
+    <th>Value (hex)</th>
+    <th>Value (bin)</th>
+  </tr>
+</table>
+
+<script>
+  let memory = [];
+
+  function toBin(n, bits) {
+    return n.toString(2).padStart(bits, '0');
+  }
+
+  function initMemory() {
+    const sz = parseInt(document.getElementById('size').value);
+    memory = new Array(sz);
+
+    for (let i = 0; i < sz; i++) {
+      memory[i] = Math.floor(Math.random() * 256);
+    }
+
+    renderMemory();
+  }
+
+  function renderMemory() {
+    const tbl = document.getElementById('memtable');
+    tbl.querySelectorAll('tr:not(:first-child)').forEach(r => r.remove());
+
+    const addressBits = Math.ceil(Math.log2(memory.length || 1));
+
+    for (let i = 0; i < memory.length; i++) {
+      const v = memory[i];
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td class="hex">0x${i.toString(16).padStart(4, '0')}</td>
+        <td class="bin">${toBin(i, addressBits)}</td>
+        <td class="hex">0x${v.toString(16).padStart(2, '0')}</td>
+        <td class="bin">${toBin(v, 8)}</td>
+      `;
+
+      tbl.append(row);
+    }
+  }
+
+  window.onload = initMemory;
+</script>
+
+</body>
+</html>

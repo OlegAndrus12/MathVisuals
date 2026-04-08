@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linear Transformations</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #7ee8a2;
+    --accent2: #f9a8d4;
+    --accent3: #93c5fd;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --grid-color: #1a1a2e;
+    --axis-color: #2a2a4a;
+    --vec-orig: #f9a8d4;
+    --vec-trans: #7ee8a2;
+    --grid-trans: rgba(147,197,253,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  header span {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 4px 8px 8px;
+  }
+
+  .preset-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    text-align: left;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--accent);
+    background: rgba(126,232,162,0.05);
+  }
+
+  .preset-btn.active {
+    border-color: var(--accent);
+    background: rgba(126,232,162,0.08);
+    color: var(--accent);
+  }
+
+  .preset-btn .p-name {
+    font-weight: 600;
+    font-size: 0.78rem;
+  }
+
+  .preset-btn .p-matrix {
+    color: var(--muted);
+    font-size: 0.65rem;
+    line-height: 1.4;
+  }
+
+  .preset-btn.active .p-matrix { color: rgba(126,232,162,0.6); }
+
+  /* Main area */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Controls bar */
+  .controls {
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    background: var(--surface);
+  }
+
+  .matrix-editor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .matrix-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .matrix-grid input {
+    width: 52px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    padding: 5px 6px;
+    border-radius: 4px;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+
+  .matrix-grid input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .matrix-bracket {
+    color: var(--muted);
+    font-size: 1.4rem;
+    font-weight: 300;
+    line-height: 1;
+    font-family: serif;
+  }
+
+  .divider { width: 1px; height: 40px; background: var(--border); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 3px; border-radius: 2px;
+  }
+
+  .animate-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 7px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+
+  .animate-btn:hover {
+    background: rgba(126,232,162,0.1);
+  }
+
+  .animate-btn.playing {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  /* Info overlay */
+  .info-panel {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(10,10,15,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 0.68rem;
+    line-height: 1.8;
+    backdrop-filter: blur(8px);
+    min-width: 180px;
+  }
+
+  .info-panel .info-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-style: italic;
+  }
+
+  .info-row { display: flex; justify-content: space-between; gap: 16px; }
+  .info-key { color: var(--muted); }
+  .info-val { color: var(--text); }
+
+  .det-positive { color: var(--accent); }
+  .det-negative { color: var(--accent2); }
+  .det-zero { color: var(--muted); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Linear Transformations</h1>
+  <span>2D Matrix Visualizer</span>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-label">Presets</div>
+  </aside>
+
+  <div class="main">
+    <div class="canvas-area">
+      <canvas id="canvas"></canvas>
+      <div class="info-panel" id="infoPanel">
+        <div class="info-title" id="infoName">Identity</div>
+        <div class="info-row"><span class="info-key">det</span><span class="info-val" id="infoDet">1.00</span></div>
+        <div class="info-row"><span class="info-key">trace</span><span class="info-val" id="infoTrace">2.00</span></div>
+        <div class="info-row"><span class="info-key">rank</span><span class="info-val" id="infoRank">2</span></div>
+        <div class="info-row"><span class="info-key">area scale</span><span class="info-val" id="infoArea">1.00×</span></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="matrix-editor">
+        <div class="matrix-label">M =</div>
+        <span class="matrix-bracket">[</span>
+        <div class="matrix-grid">
+          <input type="number" id="m00" value="1" step="0.1">
+          <input type="number" id="m01" value="0" step="0.1">
+          <input type="number" id="m10" value="0" step="0.1">
+          <input type="number" id="m11" value="1" step="0.1">
+        </div>
+        <span class="matrix-bracket">]</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#f9a8d4"></div>
+          original
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#7ee8a2"></div>
+          transformed
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgba(147,197,253,0.4);width:16px"></div>
+          grid (transformed)
+        </div>
+      </div>
+
+      <button class="animate-btn" id="animBtn">▶ Animate</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PRESETS = [
+  { name: "Identity",       mat: [1,0,0,1],       desc: "No change" },
+  { name: "Scale ×2",       mat: [2,0,0,2],       desc: "Uniform scaling" },
+  { name: "Scale X",        mat: [2,0,0,1],       desc: "Horizontal stretch" },
+  { name: "Scale Y",        mat: [1,0,0,2],       desc: "Vertical stretch" },
+  { name: "Reflect X",      mat: [1,0,0,-1],      desc: "Flip over x-axis" },
+  { name: "Reflect Y",      mat: [-1,0,0,1],      desc: "Flip over y-axis" },
+  { name: "Reflect Origin", mat: [-1,0,0,-1],     desc: "180° rotation" },
+  { name: "Rotate 45°",     mat: [Math.cos(Math.PI/4),-Math.sin(Math.PI/4),Math.sin(Math.PI/4),Math.cos(Math.PI/4)], desc: "45° counter-clockwise" },
+  { name: "Rotate 90°",     mat: [0,-1,1,0],      desc: "90° counter-clockwise" },
+  { name: "Shear X",        mat: [1,1,0,1],       desc: "Horizontal shear" },
+  { name: "Shear Y",        mat: [1,0,1,1],       desc: "Vertical shear" },
+  { name: "Projection X",   mat: [1,0,0,0],       desc: "Project onto x-axis" },
+  { name: "Squeeze",        mat: [2,0,0,0.5],     desc: "Area-preserving squeeze" },
+  { name: "Custom Shear",   mat: [1,2,0.5,1],     desc: "Mixed shear" },
+];
+
+const sidebar = document.querySelector('.sidebar');
+const presetLabel = sidebar.querySelector('.sidebar-label');
+let buttons = [];
+
+PRESETS.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn' + (i === 0 ? ' active' : '');
+  const mStr = `[${p.mat[0].toFixed(1)}, ${p.mat[1].toFixed(1)}]\n[${p.mat[2].toFixed(1)}, ${p.mat[3].toFixed(1)}]`;
+  btn.innerHTML = `<span class="p-name">${p.name}</span><span class="p-matrix">${mStr}</span>`;
+  btn.addEventListener('click', () => applyPreset(i));
+  sidebar.appendChild(btn);
+  buttons.push(btn);
+});
+
+// Canvas setup
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy, UNIT;
+let currentMat = [1,0,0,1];
+let targetMat = [1,0,0,1];
+let animT = 1; // 0..1
+let animating = false;
+let animDir = 1;
+let lastTime = null;
+const ANIM_DURATION = 1200; // ms
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * devicePixelRatio;
+  canvas.height = rect.height * devicePixelRatio;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  W = canvas.width; H = canvas.height;
+  cx = W / 2; cy = H / 2;
+  UNIT = Math.min(W, H) * 0.09;
+  draw();
+}
+
+window.addEventListener('resize', resize);
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+function lerpMat(a, b, t) {
+  return a.map((v, i) => lerp(v, b[i], t));
+}
+
+// Transform a point
+function transform(mat, x, y) {
+  return [mat[0]*x + mat[1]*y, mat[2]*x + mat[3]*y];
+}
+
+function toScreen(wx, wy) {
+  return [cx + wx * UNIT, cy - wy * UNIT];
+}
+
+function det(m) { return m[0]*m[3] - m[1]*m[2]; }
+function trace(m) { return m[0] + m[3]; }
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  const m = currentMat;
+
+  // Background subtle dots
+  ctx.fillStyle = 'rgba(30,30,46,0.3)';
+  const step = UNIT;
+  for (let x = cx % step; x < W; x += step)
+    for (let y = cy % step; y < H; y += step)
+      ctx.fillRect(x - 0.5, y - 0.5, 1, 1);
+
+  // --- Draw original grid (faint) ---
+  ctx.strokeStyle = 'rgba(40,40,70,0.5)';
+  ctx.lineWidth = 0.5;
+  const gridR = 6;
+  for (let g = -gridR; g <= gridR; g++) {
+    ctx.beginPath();
+    let [sx, sy] = toScreen(-gridR, g); ctx.moveTo(sx, sy);
+    let [ex, ey] = toScreen(gridR, g); ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.beginPath();
+    [sx, sy] = toScreen(g, -gridR); ctx.moveTo(sx, sy);
+    [ex, ey] = toScreen(g, gridR); ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+
+  // Original axes
+  ctx.strokeStyle = 'rgba(80,80,130,0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, cy); ctx.lineTo(W, cy);
+  ctx.moveTo(cx, 0); ctx.lineTo(cx, H);
+  ctx.stroke();
+
+  // --- Transformed grid ---
+  ctx.strokeStyle = 'rgba(147,197,253,0.12)';
+  ctx.lineWidth = 1;
+  for (let g = -gridR; g <= gridR; g++) {
+    ctx.beginPath();
+    let [sx, sy] = toScreen(...transform(m, -gridR, g)); ctx.moveTo(sx, sy);
+    let [ex, ey] = toScreen(...transform(m, gridR, g)); ctx.lineTo(ex, ey);
+    ctx.stroke();
+    ctx.beginPath();
+    [sx, sy] = toScreen(...transform(m, g, -gridR)); ctx.moveTo(sx, sy);
+    [ex, ey] = toScreen(...transform(m, g, gridR)); ctx.lineTo(ex, ey);
+    ctx.stroke();
+  }
+
+  // Transformed axes
+  ctx.lineWidth = 1.5;
+  // x-axis transformed
+  ctx.strokeStyle = 'rgba(147,197,253,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(...toScreen(...transform(m, -gridR, 0)));
+  ctx.lineTo(...toScreen(...transform(m, gridR, 0)));
+  ctx.stroke();
+  // y-axis transformed
+  ctx.beginPath();
+  ctx.moveTo(...toScreen(...transform(m, 0, -gridR)));
+  ctx.lineTo(...toScreen(...transform(m, 0, gridR)));
+  ctx.stroke();
+
+  // --- Sample vectors to show ---
+  const VECTORS = [
+    [1, 0], [0, 1], [1, 1], [-1, 1], [2, 1], [1, 2],
+  ];
+
+  VECTORS.forEach(([vx, vy], idx) => {
+    const [tx, ty] = transform(m, vx, vy);
+    const alpha = 0.55 + (idx === 0 || idx === 1 ? 0.35 : 0);
+
+    // Original vector
+    drawArrow(0, 0, vx, vy, `rgba(249,168,212,${alpha})`, 1.5);
+    // Transformed vector
+    drawArrow(0, 0, tx, ty, `rgba(126,232,162,${alpha})`, 2);
+  });
+
+  // Basis vectors i-hat, j-hat labels
+  const iBasis = transform(m, 1, 0);
+  const jBasis = transform(m, 0, 1);
+
+  drawArrow(0, 0, 1, 0, '#f9a8d4', 2.5, true);
+  drawArrow(0, 0, 0, 1, '#f9a8d4', 2.5, true);
+  drawArrow(0, 0, iBasis[0], iBasis[1], '#7ee8a2', 2.5, true);
+  drawArrow(0, 0, jBasis[0], jBasis[1], '#7ee8a2', 2.5, true);
+
+  // Labels
+  ctx.font = `${11 * devicePixelRatio}px JetBrains Mono`;
+  ctx.fillStyle = '#f9a8d4';
+  ctx.fillText('î', ...offset(toScreen(1, 0), 8, -8));
+  ctx.fillText('ĵ', ...offset(toScreen(0, 1), 8, 4));
+  ctx.fillStyle = '#7ee8a2';
+  ctx.fillText("î'", ...offset(toScreen(iBasis[0], iBasis[1]), 8, -8));
+  ctx.fillText("ĵ'", ...offset(toScreen(jBasis[0], jBasis[1]), 8, 4));
+
+  // Update info
+  updateInfo(m);
+}
+
+function offset([x, y], dx, dy) { return [x + dx, y + dy]; }
+
+function drawArrow(x0, y0, x1, y1, color, lw, thick = false) {
+  const [sx, sy] = toScreen(x0, y0);
+  const [ex, ey] = toScreen(x1, y1);
+  const dx = ex - sx, dy = ey - sy;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len < 1) return;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = lw * devicePixelRatio;
+  ctx.lineCap = 'round';
+
+  const headLen = Math.min(12 * devicePixelRatio, len * 0.4);
+  const angle = Math.atan2(dy, dx);
+
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex - Math.cos(angle) * headLen * 0.5, ey - Math.sin(angle) * headLen * 0.5);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(ex - headLen * Math.cos(angle - 0.38), ey - headLen * Math.sin(angle - 0.38));
+  ctx.lineTo(ex - headLen * Math.cos(angle + 0.38), ey - headLen * Math.sin(angle + 0.38));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function updateInfo(m) {
+  const d = det(m);
+  const t = trace(m);
+  const r = Math.abs(d) < 0.001 ? (m[0]===0&&m[1]===0&&m[2]===0&&m[3]===0 ? 0 : 1) : 2;
+
+  document.getElementById('infoDet').textContent = d.toFixed(3);
+  document.getElementById('infoDet').className = 'info-val ' + (d > 0.001 ? 'det-positive' : d < -0.001 ? 'det-negative' : 'det-zero');
+  document.getElementById('infoTrace').textContent = t.toFixed(3);
+  document.getElementById('infoRank').textContent = r;
+  document.getElementById('infoArea').textContent = Math.abs(d).toFixed(3) + '×';
+}
+
+// Inputs
+const inputs = ['m00','m01','m10','m11'];
+inputs.forEach((id, i) => {
+  document.getElementById(id).addEventListener('input', () => {
+    const vals = inputs.map(id => parseFloat(document.getElementById(id).value) || 0);
+    currentMat = vals;
+    targetMat = [...vals];
+    animT = 1;
+    buttons.forEach(b => b.classList.remove('active'));
+    document.getElementById('infoName').textContent = 'Custom';
+    draw();
+  });
+});
+
+function applyPreset(i) {
+  buttons.forEach(b => b.classList.remove('active'));
+  buttons[i].classList.add('active');
+  document.getElementById('infoName').textContent = PRESETS[i].name;
+
+  const from = [...currentMat];
+  targetMat = [...PRESETS[i].mat];
+
+  // Animate transition
+  animT = 0;
+  animating = true;
+  animDir = 1;
+  document.getElementById('animBtn').classList.remove('playing');
+  document.getElementById('animBtn').textContent = '▶ Animate';
+
+  let start = null;
+  function step(ts) {
+    if (!start) start = ts;
+    const t = Math.min((ts - start) / ANIM_DURATION, 1);
+    currentMat = lerpMat(from, targetMat, ease(t));
+    setInputs(currentMat);
+    draw();
+    if (t < 1) requestAnimationFrame(step);
+    else { currentMat = [...targetMat]; draw(); }
+  }
+  requestAnimationFrame(step);
+}
+
+function setInputs(m) {
+  inputs.forEach((id, i) => {
+    document.getElementById(id).value = m[i].toFixed(2);
+  });
+}
+
+// Animate button: oscillate between identity and current
+const animBtn = document.getElementById('animBtn');
+let animRAF = null;
+let animStart = null;
+
+animBtn.addEventListener('click', () => {
+  if (animRAF) {
+    cancelAnimationFrame(animRAF);
+    animRAF = null;
+    animBtn.classList.remove('playing');
+    animBtn.textContent = '▶ Animate';
+    currentMat = [...targetMat];
+    setInputs(currentMat);
+    draw();
+    return;
+  }
+
+  animBtn.classList.add('playing');
+  animBtn.textContent = '■ Stop';
+
+  const identity = [1,0,0,1];
+  const target = [...targetMat];
+  animStart = null;
+
+  function oscillate(ts) {
+    if (!animStart) animStart = ts;
+    const elapsed = (ts - animStart) % (ANIM_DURATION * 2);
+    let t = elapsed / ANIM_DURATION;
+    if (t > 1) t = 2 - t; // ping-pong
+    currentMat = lerpMat(identity, target, ease(t));
+    setInputs(currentMat);
+    draw();
+    animRAF = requestAnimationFrame(oscillate);
+  }
+
+  animRAF = requestAnimationFrame(oscillate);
+});
+
+applyPreset(0);
+resize();
+
+// Initial load animation
+setTimeout(() => applyPreset(0), 100);
+</script>
+</body>
+</html>
